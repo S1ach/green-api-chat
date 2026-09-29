@@ -113,7 +113,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       setHydratedKey(null);
       return;
     }
-    dispatch({ type: 'hydrate', payload: parseChatState(loadJson(storageKey)) ?? initialChatState });
+    dispatch({
+      type: 'hydrate',
+      payload: parseChatState(loadJson(storageKey)) ?? initialChatState,
+    });
     setHydratedKey(storageKey);
   }, [storageKey]);
 
@@ -231,7 +234,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<ChatContextValue>(() => {
-    const activeChat = state.activeChatId === null ? null : (state.chats[state.activeChatId] ?? null);
+    const activeChat =
+      state.activeChatId === null ? null : (state.chats[state.activeChatId] ?? null);
     return {
       chats: selectChats(state),
       activeChat,

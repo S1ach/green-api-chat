@@ -64,11 +64,7 @@ export function useNotificationsPolling({ credentials, onNotification }: Options
     const loop = async (): Promise<void> => {
       while (!signal.aborted) {
         try {
-          const envelope = await receiveNotification(
-            credentials,
-            RECEIVE_TIMEOUT_SECONDS,
-            signal,
-          );
+          const envelope = await receiveNotification(credentials, RECEIVE_TIMEOUT_SECONDS, signal);
           failures = 0;
           setError((previous) => (previous === null ? previous : null));
 

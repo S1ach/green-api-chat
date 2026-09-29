@@ -24,7 +24,13 @@ export type ChatAction =
   | { type: 'message/enqueue'; payload: { message: ChatMessage } }
   | {
       type: 'message/status';
-      payload: { chatId: string; localId: string; status: MessageStatus; id?: string; error?: string };
+      payload: {
+        chatId: string;
+        localId: string;
+        status: MessageStatus;
+        id?: string;
+        error?: string;
+      };
     }
   | { type: 'message/incoming'; payload: IncomingTextMessage }
   | { type: 'reset' };
