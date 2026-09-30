@@ -93,6 +93,24 @@ export async function checkAccount(
   };
 }
 
+/**
+ * POST /waInstance{id}/getAvatar/{token}
+ * Возвращает ссылку на аватар или пустую строку, если аватара нет
+ * либо он скрыт настройками приватности.
+ */
+export async function getAvatar(
+  credentials: Credentials,
+  chatId: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  const data = await call(
+    buildUrl(credentials, 'getAvatar'),
+    { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ chatId }) },
+    signal,
+  );
+  return (isRecord(data) ? readString(data, 'urlAvatar') : null) ?? '';
+}
+
 /** POST /waInstance{id}/sendMessage/{token} */
 export async function sendMessage(
   credentials: Credentials,

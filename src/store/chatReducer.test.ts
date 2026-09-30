@@ -103,4 +103,46 @@ describe('chatReducer: исходящие сообщения', () => {
     expect(message?.id).toBe('BAE5');
     expect(sent.chats['10000000']?.lastPreview).toBe('Привет из GREEN-API');
   });
+
+  it('сохраняет ссылку на аватар и отличает «не запрашивали» от «аватара нет»', () => {
+    const opened = openChat('10000000', '79991234567');
+    expect(opened.chats['10000000']?.avatarUrl).toBeNull();
+
+    const withAvatar = chatReducer(opened, {
+      type: 'chat/avatar',
+      payload: { chatId: '10000000', avatarUrl: 'https://cdn.example/a.jpg' },
+    });
+    expect(withAvatar.chats['10000000']?.avatarUrl).toBe('https://cdn.example/a.jpg');
+
+    const withoutAvatar = chatReducer(opened, {
+      type: 'chat/avatar',
+      payload: { chatId: '10000000', avatarUrl: '' },
+    });
+    expect(withoutAvatar.chats['10000000']?.avatarUrl).toBe('');
+  });
+
+  it('не создаёт новый объект состояния, если аватар не изменился', () => {
+    const opened = openChat('10000000', '79991234567');
+    const withAvatar = chatReducer(opened, {
+      type: 'chat/avatar',
+      payload: { chatId: '10000000', avatarUrl: '' },
+    });
+
+    expect(
+      chatReducer(withAvatar, {
+        type: 'chat/avatar',
+        payload: { chatId: '10000000', avatarUrl: '' },
+      }),
+    ).toBe(withAvatar);
+  });
+
+  it('игнорирует аватар для неизвестного чата', () => {
+    const opened = openChat('10000000', '79991234567');
+    expect(
+      chatReducer(opened, {
+        type: 'chat/avatar',
+        payload: { chatId: 'нет-такого', avatarUrl: 'https://cdn.example/a.jpg' },
+      }),
+    ).toBe(opened);
+  });
 });

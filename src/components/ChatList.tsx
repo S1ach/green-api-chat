@@ -1,5 +1,6 @@
 import type { Chat } from '../types/chat';
 import { formatListStamp } from '../utils/datetime';
+import { ChatAvatar } from './ChatAvatar';
 import styles from './ChatList.module.css';
 
 interface Props {
@@ -22,9 +23,7 @@ export function ChatList({ chats, activeChatId, onSelect }: Props) {
             className={chat.id === activeChatId ? `${styles.item} ${styles.active}` : styles.item}
             onClick={() => onSelect(chat.id)}
           >
-            <span className={styles.avatar} aria-hidden="true">
-              {chat.title.replace(/\D/g, '').slice(-2) || '#'}
-            </span>
+            <ChatAvatar chat={chat} />
             <span className={styles.body}>
               <span className={styles.row}>
                 <span className={styles.title}>{chat.title}</span>

@@ -19,7 +19,8 @@ _Положите файлы в `docs/` и раскомментируйте ст
 ## Возможности
 
 - Экран входа: `apiUrl`, `idInstance`, `apiTokenInstance`; проверка через `getStateInstance`
-  с понятными подсказками для состояний `notAuthorized`, `starting`, `blocked`, `sleepMode`, `yellowCard`.
+  с понятными подсказками для состояний `notAuthorized`, `pendingPassword`, `starting`, `blocked`,
+  `suspended`, `sleepMode`, `yellowCard`.
 - Сохранение учётных данных в `localStorage` (в `try/catch`) и кнопка «Выйти».
 - Новый чат по номеру телефона: нормализация (`+7 (999) 123-45-67` → `79991234567`) и проверка номера
   методом `CheckAccount`, который возвращает числовой `chatId` MAX. Соответствие «номер → chatId» сохраняется.
@@ -28,6 +29,8 @@ _Положите файлы в `docs/` и раскомментируйте ст
 - Приём входящих последовательным HTTP-опросом очереди: каждое уведомление обязательно удаляется,
   даже нерелевантное (статусы, исходящие, медиа), иначе очередь встанет.
 - Входящие слева, исходящие справа, время сообщения, автоскролл вниз, счётчик непрочитанных в списке чатов.
+- Аватары собеседников методом `GetAvatar` — по одному запросу на чат, с кружком инициалов как запасным
+  вариантом, если аватара нет, он скрыт настройками приватности или ссылка перестала открываться.
 - Адаптивность: на ширине ≤ 760 px видно либо список чатов, либо переписку.
 
 Намеренно не реализовано (вне рамок задания): файлы, эмодзи-пикер, группы, поиск, редактирование и удаление сообщений.
@@ -49,7 +52,7 @@ _Положите файлы в `docs/` и раскомментируйте ст
 ```
 src/
   api/
-    greenApi.ts        getStateInstance, checkAccount, sendMessage, receiveNotification, deleteNotification
+    greenApi.ts        getStateInstance, checkAccount, getAvatar, sendMessage, receiveNotification, deleteNotification
     errors.ts          GreenApiError и понятные сообщения для 400/401/403/429/466/5xx и сетевых сбоев
   types/
     green.ts           типы запросов, ответов и уведомлений GREEN-API
@@ -60,7 +63,7 @@ src/
     chatReducer.ts     чистый редьюсер: чаты, сообщения, непрочитанные, сопоставление chatId
     ChatProvider.tsx   связь редьюсера с API и localStorage
     AuthProvider.tsx   учётные данные и вход/выход
-  components/          LoginForm, ChatList, NewChatForm, ChatWindow, MessageList, MessageInput
+  components/          LoginForm, ChatList, NewChatForm, ChatWindow, MessageList, MessageInput, ChatAvatar
   utils/
     phone.ts           нормализация и форматирование номера
     notification.ts    разбор тела уведомления
@@ -95,8 +98,19 @@ npm run preview    # просмотр собранной версии
    - **idInstance** — например `1101000001`;
    - **apiTokenInstance** — длинная строка-токен;
    - **apiUrl** — по умолчанию `https://api.green-api.com` (в консоли может быть указан другой адрес — используйте его).
-4. Авторизуйте инстанс: отсканируйте QR-код в приложении MAX. Состояние должно стать `authorized` —
-   именно это проверяет форма входа.
+4. Авторизуйте инстанс:
+   - в MAX **отключите пароль на вход** (Профиль → Настройки) — с включённым паролем QR-код не сработает;
+   - в консоли нажмите «Получить QR-код для авторизации»;
+   - в приложении MAX откройте Профиль → Устройства → «Войти по QR-коду» и отсканируйте код.
+
+   Состояние должно стать `authorized` — именно это проверяет форма входа. Если вместо этого
+   пришло `pendingPassword`, авторизацию нужно завершить методом `SendAuthorizationPassword`.
+
+   Проверить состояние можно и без приложения:
+
+   ```bash
+   curl "https://3100.api.green-api.com/waInstance{{idInstance}}/getStateInstance/{{apiTokenInstance}}"
+   ```
 
 ## Настройка инстанса для приёма сообщений по HTTP API
 

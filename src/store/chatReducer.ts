@@ -33,6 +33,7 @@ export type ChatAction =
       };
     }
   | { type: 'message/incoming'; payload: IncomingTextMessage }
+  | { type: 'chat/avatar'; payload: { chatId: string; avatarUrl: string } }
   | { type: 'reset' };
 
 const PREVIEW_LENGTH = 60;
@@ -93,6 +94,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
             id: chatId,
             phone,
             title: action.payload.title ?? titleFor(phone, chatId),
+            avatarUrl: null,
             unreadCount: 0,
             lastActivity: Date.now(),
             lastPreview: '',
@@ -178,6 +180,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         id: chatId,
         phone,
         title: incoming.senderName ?? titleFor(phone, chatId),
+        avatarUrl: null,
         unreadCount: 0,
         lastActivity: incoming.timestamp,
         lastPreview: '',
@@ -215,6 +218,15 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
           },
         },
       };
+    }
+
+    case 'chat/avatar': {
+      const { chatId, avatarUrl } = action.payload;
+      const chat = state.chats[chatId];
+      if (!chat || chat.avatarUrl === avatarUrl) {
+        return state;
+      }
+      return { ...state, chats: { ...state.chats, [chatId]: { ...chat, avatarUrl } } };
     }
 
     case 'reset':

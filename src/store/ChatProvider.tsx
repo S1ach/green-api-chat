@@ -1,5 +1,13 @@
-import { useCallback, useEffect, useMemo, useReducer, useState, type ReactNode } from 'react';
-import { checkAccount, sendMessage } from '../api/greenApi';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { checkAccount, getAvatar, sendMessage } from '../api/greenApi';
 import { GreenApiError } from '../api/errors';
 import { useNotificationsPolling } from '../hooks/useNotificationsPolling';
 import type { Chat, ChatMessage, MessageStatus } from '../types/chat';
@@ -29,6 +37,7 @@ function parseChat(raw: unknown): Chat | null {
     id,
     phone: readString(raw, 'phone'),
     title: readString(raw, 'title') ?? id,
+    avatarUrl: readString(raw, 'avatarUrl'),
     unreadCount: readNumber(raw, 'unreadCount') ?? 0,
     lastActivity: readNumber(raw, 'lastActivity') ?? Date.now(),
     lastPreview: readString(raw, 'lastPreview') ?? '',
@@ -126,6 +135,41 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
     saveJson(storageKey, serialize(state));
   }, [state, storageKey, hydratedKey]);
+
+  // Аватар не приходит ни в CheckAccount, ни в уведомлениях — его тянем отдельно,
+  // по одному запросу на чат. Множество попыток защищает от повторов при
+  // ошибках и лимите запросов у GetAvatar.
+  const avatarAttempts = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    avatarAttempts.current.clear();
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (credentials === null) {
+      return;
+    }
+    const pending = state.chatOrder.filter(
+      (chatId) =>
+        state.chats[chatId]?.avatarUrl === null && !avatarAttempts.current.has(chatId),
+    );
+    if (pending.length === 0) {
+      return;
+    }
+
+    const controller = new AbortController();
+    for (const chatId of pending) {
+      avatarAttempts.current.add(chatId);
+      void getAvatar(credentials, chatId, controller.signal)
+        .then((avatarUrl) => {
+          dispatch({ type: 'chat/avatar', payload: { chatId, avatarUrl } });
+        })
+        .catch(() => {
+          // Аватар — украшение: молча остаёмся с инициалами.
+        });
+    }
+    return () => controller.abort();
+  }, [credentials, state.chatOrder, state.chats]);
 
   const handleNotification = useCallback((body: unknown) => {
     const incoming = parseIncomingTextMessage(body);

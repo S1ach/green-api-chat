@@ -1,5 +1,6 @@
 import type { Chat, ChatMessage } from '../types/chat';
 import { formatPhone } from '../utils/phone';
+import { ChatAvatar } from './ChatAvatar';
 import { MessageInput } from './MessageInput';
 import { MessageList } from './MessageList';
 import styles from './ChatWindow.module.css';
@@ -18,6 +19,7 @@ export function ChatWindow({ chat, messages, onSend, onBack }: Props) {
         <button className={styles.back} type="button" onClick={onBack} aria-label="К списку чатов">
           ←
         </button>
+        <ChatAvatar chat={chat} size="sm" />
         <div className={styles.headline}>
           <h2 className={styles.title}>{chat.title}</h2>
           <p className={styles.subtitle}>

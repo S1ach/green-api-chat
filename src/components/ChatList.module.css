@@ -34,19 +34,6 @@
   background: var(--color-accent-soft);
 }
 
-.avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-}
-
 .body {
   display: flex;
   flex-direction: column;
