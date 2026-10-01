@@ -1,0 +1,2 @@
+# Единые окончания строк: без этого на Windows (core.autocrlf) падает prettier --check.
+* text=auto eol=lf

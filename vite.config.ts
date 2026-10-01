@@ -1,4 +1,5 @@
 /// <reference types="vitest" />
+import { fileURLToPath, URL } from 'node:url';
 import { defineConfig, type ProxyOptions } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -23,12 +24,20 @@ const proxy: Record<string, ProxyOptions> = {
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    // Алиас слоёв FSD: `@/shared/...`, `@/entities/...` и т.д.
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
+  css: {
+    preprocessorOptions: { scss: { api: 'modern-compiler' } },
+  },
   // Для GitHub Pages: VITE_BASE=/green-api-max-chat/ npm run build
   base: process.env.VITE_BASE ?? '/',
   server: useProxy ? { proxy } : {},
   test: {
     globals: true,
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
+    environment: 'jsdom',
+    setupFiles: ['./src/shared/lib/test/setup.ts'],
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 });

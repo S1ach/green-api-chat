@@ -1,0 +1,97 @@
+import type { Message } from '@/entities/message/@x/chat';
+import { isRecord, readNumber, readString } from '@/shared/lib/guards';
+import { loadJson, saveJson } from '@/shared/lib/storage';
+import { initialChatState, type ChatState } from '../model/chatSlice';
+import type { Chat } from '../model/types';
+
+/**
+ * Кэш чатов в localStorage — отдельный на каждый инстанс. Источник истории — сервер
+ * (GetChats, GetChatHistory); кэш нужен, чтобы список появлялся сразу после перезагрузки.
+ */
+const KEY_PREFIX = 'greenapi.chats.v2.';
+
+/** Сколько последних сообщений чата сохраняем. */
+const HISTORY_LIMIT = 300;
+
+function parseChat(raw: unknown): Chat | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const id = readString(raw, 'id');
+  if (id === null) {
+    return null;
+  }
+  return {
+    id,
+    phone: readString(raw, 'phone'),
+    title: readString(raw, 'title') ?? id,
+    chatType: readString(raw, 'chatType'),
+    unreadCount: readNumber(raw, 'unreadCount') ?? 0,
+    lastActivity: readNumber(raw, 'lastActivity') ?? Date.now(),
+    lastPreview: readString(raw, 'lastPreview') ?? '',
+  };
+}
+
+function parseMessage(raw: unknown): Message | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const id = readString(raw, 'id');
+  const chatId = readString(raw, 'chatId');
+  const text = readString(raw, 'text');
+  if (id === null || chatId === null || text === null) {
+    return null;
+  }
+  return {
+    id,
+    chatId,
+    direction: readString(raw, 'direction') === 'incoming' ? 'incoming' : 'outgoing',
+    text,
+    timestamp: readNumber(raw, 'timestamp') ?? Date.now(),
+  };
+}
+
+/** Содержимое localStorage могло быть повреждено или записано другой версией — проверяем по полям. */
+function parseChatState(raw: unknown): ChatState | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const rawChats = isRecord(raw.chats) ? raw.chats : {};
+  const rawMessages = isRecord(raw.messages) ? raw.messages : {};
+
+  const chats: Record<string, Chat> = {};
+  for (const [id, value] of Object.entries(rawChats)) {
+    const chat = parseChat(value);
+    if (chat !== null) {
+      chats[id] = chat;
+    }
+  }
+
+  const messages: Record<string, Message[]> = {};
+  for (const [id, value] of Object.entries(rawMessages)) {
+    if (!Array.isArray(value)) {
+      continue;
+    }
+    messages[id] = value
+      .map(parseMessage)
+      .filter((message): message is Message => message !== null);
+  }
+
+  const chatOrder = Array.isArray(raw.chatOrder)
+    ? raw.chatOrder.filter((id): id is string => typeof id === 'string' && id in chats)
+    : [];
+
+  return { chats, chatOrder, messages, activeChatId: null };
+}
+
+export function loadChatCache(idInstance: string): ChatState {
+  return parseChatState(loadJson(KEY_PREFIX + idInstance)) ?? initialChatState;
+}
+
+export function saveChatCache(idInstance: string, state: ChatState): void {
+  const messages: Record<string, Message[]> = {};
+  for (const [chatId, list] of Object.entries(state.messages)) {
+    messages[chatId] = list.slice(-HISTORY_LIMIT);
+  }
+  saveJson(KEY_PREFIX + idInstance, { ...state, messages });
+}

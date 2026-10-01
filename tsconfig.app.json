@@ -18,6 +18,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": false,
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] },
     "types": ["vite/client", "vitest/globals"]
   },
   "include": ["src"]

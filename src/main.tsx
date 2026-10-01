@@ -1,9 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App';
-import { AuthProvider } from './store/AuthProvider';
-import { ChatProvider } from './store/ChatProvider';
-import './index.css';
+import { Provider } from 'react-redux';
+import { App } from './app/App';
+import { store } from './app/providers/store';
+import './app/styles/globals.scss';
 
 const container = document.getElementById('root');
 if (container === null) {
@@ -12,10 +12,8 @@ if (container === null) {
 
 createRoot(container).render(
   <StrictMode>
-    <AuthProvider>
-      <ChatProvider>
-        <App />
-      </ChatProvider>
-    </AuthProvider>
+    <Provider store={store}>
+      <App />
+    </Provider>
   </StrictMode>,
 );
