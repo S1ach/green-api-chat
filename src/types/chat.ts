@@ -20,6 +20,8 @@ export interface Chat {
   /** Нормализованный номер, если известен. */
   phone: string | null;
   title: string;
+  /** Тип чата из GetChats: user, group, channel, bot; `null` — неизвестен. */
+  chatType: string | null;
   /** Ссылка из GetAvatar; `null` — ещё не запрашивали, `''` — аватара нет. */
   avatarUrl: string | null;
   unreadCount: number;

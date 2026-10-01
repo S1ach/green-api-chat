@@ -32,28 +32,6 @@
   color: var(--color-text-muted);
 }
 
-.logout {
-  padding: 6px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg);
-  font-size: 13px;
-}
-
-.newChatRow {
-  padding: 0 16px 12px;
-}
-
-.newChat {
-  width: 100%;
-  padding: 9px 12px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-  font-weight: 600;
-}
-
 .main {
   display: flex;
   flex-direction: column;

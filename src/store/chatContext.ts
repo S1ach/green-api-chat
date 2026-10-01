@@ -13,6 +13,10 @@ export interface ChatContextValue {
   activeMessages: ChatMessage[];
   /** Ошибка фонового опроса уведомлений, если он сейчас не работает. */
   pollingError: string | null;
+  /** Ошибка загрузки истории открытого чата через GetChatHistory. */
+  historyError: string | null;
+  /** Настройки инстанса мешают приёму входящих (webhookUrl / incomingWebhook). */
+  settingsWarning: string | null;
   openChatByPhone: (input: string) => Promise<OpenChatResult>;
   selectChat: (chatId: string) => void;
   closeChat: () => void;

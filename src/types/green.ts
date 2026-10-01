@@ -30,6 +30,25 @@ export interface SendMessageResponse {
   idMessage: string;
 }
 
+/** Элемент ответа GetChats, приведённый к удобному виду. */
+export interface RemoteChat {
+  chatId: string;
+  /** Имя чата; пустая строка, если API его не отдал. */
+  name: string;
+  /** user, group, channel или bot; `null`, если API его не отдал. */
+  type: string | null;
+  /** Номер телефона или `null`, если он скрыт (в API приходит 0). */
+  phone: string | null;
+}
+
+/** Настройки инстанса (GetSettings), от которых зависит приём уведомлений. */
+export interface InstanceSettings {
+  /** Должен быть пустым при приёме через HTTP API (ReceiveNotification). */
+  webhookUrl: string;
+  /** "yes" — входящие сообщения попадают в очередь уведомлений. */
+  incomingWebhook: string;
+}
+
 /** Ответ ReceiveNotification: либо `null` (очередь пуста), либо конверт с квитанцией. */
 export interface NotificationEnvelope {
   receiptId: number;

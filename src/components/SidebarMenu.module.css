@@ -1,0 +1,81 @@
+.root {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.trigger {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #ffffff;
+  transition: transform 0.15s ease;
+}
+
+.trigger svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+/* Открытое меню: плюс поворачивается в крестик. */
+.open {
+  transform: rotate(45deg);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 10;
+  min-width: 200px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px rgba(23, 24, 28, 0.12);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  font-size: 14px;
+  text-align: left;
+}
+
+.item:hover,
+.item:focus-visible {
+  background: var(--color-bg-muted);
+  outline: none;
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.danger {
+  color: var(--color-danger);
+}

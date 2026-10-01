@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { deleteNotification, receiveNotification } from '../api/greenApi';
 import { toUserMessage } from '../api/errors';
 import type { Credentials } from '../types/green';
+import { devLog } from '../utils/devLog';
+import { describeNotification } from '../utils/notification';
 
 /** Сколько секунд сервер держит открытым запрос, если очередь пуста. */
 const RECEIVE_TIMEOUT_SECONDS = 5;
@@ -64,25 +66,39 @@ export function useNotificationsPolling({ credentials, onNotification }: Options
     const loop = async (): Promise<void> => {
       while (!signal.aborted) {
         try {
+          devLog('Polling', 'Waiting for notification...');
           const envelope = await receiveNotification(credentials, RECEIVE_TIMEOUT_SECONDS, signal);
           failures = 0;
           setError((previous) => (previous === null ? previous : null));
 
+          // Пустой ответ — очередь пуста, сервер уже подождал receiveTimeout: сразу идём на новый круг.
           if (envelope !== null) {
+            const summary = describeNotification(envelope.body);
+            devLog('Polling', 'Notification received');
+            devLog('Polling', 'typeWebhook:', summary.typeWebhook);
+            devLog('Polling', 'chatId:', summary.chatId);
+            devLog('Polling', 'messageData:', summary.messageData);
+
+            // Сначала обработка, потом удаление. Если обработчик упал — подробно логируем
+            // и всё равно удаляем: иначе «битое» уведомление навсегда заблокирует очередь.
             try {
               handlerRef.current(envelope.body);
             } catch (handlerError) {
-              console.error('Не удалось обработать уведомление', handlerError);
-            } finally {
-              // Удаляем всегда: статусы и прочие типы тоже блокируют очередь.
-              await deleteNotification(credentials, envelope.receiptId, signal);
+              console.error(
+                `[Polling] Не удалось обработать уведомление receiptId=${envelope.receiptId}`,
+                handlerError,
+                envelope.body,
+              );
             }
+            devLog('DeleteNotification', 'receiptId:', envelope.receiptId);
+            await deleteNotification(credentials, envelope.receiptId, signal);
           }
         } catch (requestError) {
           if (signal.aborted) {
             return;
           }
           failures += 1;
+          console.warn(`[Polling] Ошибка, попытка ${failures}:`, toUserMessage(requestError));
           setError(toUserMessage(requestError));
           await wait(retryDelay(failures), signal);
         }

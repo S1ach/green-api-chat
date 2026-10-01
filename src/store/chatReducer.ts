@@ -1,4 +1,7 @@
 import type { Chat, ChatMessage, MessageStatus } from '../types/chat';
+import type { RemoteChat } from '../types/green';
+import { isSameChat } from '../utils/chatId';
+import { mergeMessages } from '../utils/history';
 import type { IncomingTextMessage } from '../utils/notification';
 import { formatPhone, phoneFromChatId } from '../utils/phone';
 
@@ -33,6 +36,8 @@ export type ChatAction =
       };
     }
   | { type: 'message/incoming'; payload: IncomingTextMessage }
+  | { type: 'history/loaded'; payload: { chatId: string; messages: ChatMessage[] } }
+  | { type: 'chats/loaded'; payload: { chats: RemoteChat[] } }
   | { type: 'chat/avatar'; payload: { chatId: string; avatarUrl: string } }
   | { type: 'reset' };
 
@@ -59,6 +64,10 @@ export function resolveChatId(
 ): string | null {
   if (state.chats[chatId]) {
     return chatId;
+  }
+  const sameId = state.chatOrder.find((id) => isSameChat(id, chatId));
+  if (sameId !== undefined) {
+    return sameId;
   }
   const phone = senderPhone ?? phoneFromChatId(chatId);
   if (phone === null) {
@@ -94,6 +103,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
             id: chatId,
             phone,
             title: action.payload.title ?? titleFor(phone, chatId),
+            chatType: 'user',
             avatarUrl: null,
             unreadCount: 0,
             lastActivity: Date.now(),
@@ -152,17 +162,47 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       if (!chatMessages) {
         return state;
       }
+      const updated = chatMessages.map((message) =>
+        message.id === localId
+          ? { ...message, status, id: id ?? message.id, ...(error ? { error } : {}) }
+          : message,
+      );
       return {
         ...state,
         messages: {
           ...state.messages,
-          [chatId]: chatMessages.map((message) =>
-            message.id === localId
-              ? { ...message, status, id: id ?? message.id, ...(error ? { error } : {}) }
-              : message,
-          ),
+          // Если GetChatHistory успел вернуть это сообщение раньше ответа SendMessage,
+          // после замены localId на idMessage их станет два — оставляем одно.
+          [chatId]: id !== undefined ? mergeMessages([], updated) : updated,
         },
       };
+    }
+
+    case 'history/loaded': {
+      const { chatId, messages } = action.payload;
+      const chat = state.chats[chatId];
+      if (!chat) {
+        return state;
+      }
+      const merged = mergeMessages(messages, state.messages[chatId] ?? []);
+      const last = merged[merged.length - 1];
+      const withMessages = { ...state, messages: { ...state.messages, [chatId]: merged } };
+      if (last === undefined || (last.timestamp < chat.lastActivity && chat.lastPreview !== '')) {
+        return withMessages;
+      }
+      const chats = {
+        ...state.chats,
+        [chatId]: {
+          ...chat,
+          lastActivity: Math.max(chat.lastActivity, last.timestamp),
+          lastPreview: preview(last.text),
+        },
+      };
+      // Как в мессенджере: сверху чаты с самыми свежими сообщениями (сортировка стабильная).
+      const chatOrder = [...state.chatOrder].sort(
+        (a, b) => (chats[b]?.lastActivity ?? 0) - (chats[a]?.lastActivity ?? 0),
+      );
+      return { ...withMessages, chats, chatOrder };
     }
 
     case 'message/incoming': {
@@ -180,6 +220,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         id: chatId,
         phone,
         title: incoming.senderName ?? titleFor(phone, chatId),
+        chatType: null,
         avatarUrl: null,
         unreadCount: 0,
         lastActivity: incoming.timestamp,
@@ -218,6 +259,48 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
           },
         },
       };
+    }
+
+    case 'chats/loaded': {
+      // Чаты с сервера дополняют локальный список: уже известные (в том числе созданные
+      // по запасному chatId "номер@c.us") не дублируем, а лишь уточняем имя и номер.
+      let chats = state.chats;
+      const added: string[] = [];
+      for (const remote of action.payload.chats) {
+        const knownId = resolveChatId(
+          { ...state, chats, chatOrder: [...state.chatOrder, ...added] },
+          remote.chatId,
+          remote.phone,
+        );
+        const known = knownId !== null ? chats[knownId] : undefined;
+        if (known) {
+          chats = {
+            ...chats,
+            [known.id]: {
+              ...known,
+              phone: known.phone ?? remote.phone,
+              title: remote.name !== '' ? remote.name : known.title,
+              chatType: remote.type ?? known.chatType,
+            },
+          };
+          continue;
+        }
+        chats = {
+          ...chats,
+          [remote.chatId]: {
+            id: remote.chatId,
+            phone: remote.phone,
+            title: remote.name !== '' ? remote.name : titleFor(remote.phone, remote.chatId),
+            chatType: remote.type,
+            avatarUrl: null,
+            unreadCount: 0,
+            lastActivity: 0,
+            lastPreview: '',
+          },
+        };
+        added.push(remote.chatId);
+      }
+      return { ...state, chats, chatOrder: [...state.chatOrder, ...added] };
     }
 
     case 'chat/avatar': {

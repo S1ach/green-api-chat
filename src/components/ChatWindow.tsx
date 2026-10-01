@@ -1,4 +1,5 @@
 import type { Chat, ChatMessage } from '../types/chat';
+import { isReadOnlyChat } from '../utils/chatId';
 import { formatPhone } from '../utils/phone';
 import { ChatAvatar } from './ChatAvatar';
 import { MessageInput } from './MessageInput';
@@ -22,13 +23,27 @@ export function ChatWindow({ chat, messages, onSend, onBack }: Props) {
         <ChatAvatar chat={chat} size="sm" />
         <div className={styles.headline}>
           <h2 className={styles.title}>{chat.title}</h2>
-          <p className={styles.subtitle}>
-            {chat.phone !== null ? formatPhone(chat.phone) : `chatId: ${chat.id}`}
-          </p>
+          <p className={styles.subtitle}>{subtitle(chat)}</p>
         </div>
       </header>
       <MessageList messages={messages} />
-      <MessageInput onSend={onSend} />
+      {isReadOnlyChat(chat) ? (
+        <p className={styles.readOnly}>
+          Это служебный чат MAX — отправлять сообщения в него нельзя.
+        </p>
+      ) : (
+        <MessageInput onSend={onSend} />
+      )}
     </section>
   );
+}
+
+function subtitle(chat: Chat): string {
+  if (chat.phone !== null) {
+    return formatPhone(chat.phone);
+  }
+  if (chat.chatType === 'bot') {
+    return 'бот';
+  }
+  return `chatId: ${chat.id}`;
 }

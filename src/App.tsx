@@ -3,14 +3,24 @@ import { ChatList } from './components/ChatList';
 import { ChatWindow } from './components/ChatWindow';
 import { LoginForm } from './components/LoginForm';
 import { NewChatForm } from './components/NewChatForm';
+import { SidebarMenu } from './components/SidebarMenu';
 import { useAuth } from './store/authContext';
 import { useChat } from './store/chatContext';
 import styles from './App.module.css';
 
 function Workspace() {
   const { credentials, logout } = useAuth();
-  const { chats, activeChat, activeMessages, pollingError, selectChat, closeChat, sendText } =
-    useChat();
+  const {
+    chats,
+    activeChat,
+    activeMessages,
+    pollingError,
+    historyError,
+    settingsWarning,
+    selectChat,
+    closeChat,
+    sendText,
+  } = useChat();
   const [isCreating, setIsCreating] = useState(false);
 
   return (
@@ -21,20 +31,9 @@ function Workspace() {
             <h1 className={styles.brand}>Чаты</h1>
             <p className={styles.instance}>Инстанс {credentials?.idInstance}</p>
           </div>
-          <button className={styles.logout} type="button" onClick={logout}>
-            Выйти
-          </button>
+          <SidebarMenu onNewChat={() => setIsCreating(true)} onLogout={logout} />
         </header>
 
-        <div className={styles.newChatRow}>
-          <button
-            className={styles.newChat}
-            type="button"
-            onClick={() => setIsCreating((value) => !value)}
-          >
-            {isCreating ? 'Закрыть' : '+ Новый чат'}
-          </button>
-        </div>
         {isCreating && <NewChatForm onClose={() => setIsCreating(false)} />}
 
         <ChatList
@@ -48,6 +47,16 @@ function Workspace() {
         {pollingError !== null && (
           <p className={styles.banner} role="status">
             Приём сообщений прерван: {pollingError} Повторяем автоматически.
+          </p>
+        )}
+        {settingsWarning !== null && (
+          <p className={styles.banner} role="status">
+            Входящие сообщения не будут приходить: {settingsWarning}
+          </p>
+        )}
+        {historyError !== null && activeChat !== null && (
+          <p className={styles.banner} role="status">
+            История чата не загрузилась: {historyError}
           </p>
         )}
         {activeChat === null ? (

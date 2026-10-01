@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractMessageText, parseIncomingTextMessage } from './notification';
+import { extractMessageText, parseIncomingNotification } from './notification';
 
 const incomingTextMessage = {
   typeWebhook: 'incomingMessageReceived',
@@ -21,9 +21,9 @@ const incomingTextMessage = {
   },
 };
 
-describe('parseIncomingTextMessage', () => {
+describe('parseIncomingNotification', () => {
   it('разбирает входящее текстовое сообщение', () => {
-    expect(parseIncomingTextMessage(incomingTextMessage)).toEqual({
+    expect(parseIncomingNotification(incomingTextMessage)).toEqual({
       idMessage: '1763115112345',
       chatId: '10000000',
       senderName: 'Иван П.',
@@ -34,7 +34,7 @@ describe('parseIncomingTextMessage', () => {
   });
 
   it('разбирает extendedTextMessage и chatId вида номер@c.us', () => {
-    const parsed = parseIncomingTextMessage({
+    const parsed = parseIncomingNotification({
       ...incomingTextMessage,
       senderData: { chatId: '79876543210@c.us', sender: '79876543210@c.us' },
       messageData: {
@@ -49,9 +49,9 @@ describe('parseIncomingTextMessage', () => {
   });
 
   it('игнорирует уведомления о статусах и исходящих сообщениях', () => {
-    expect(parseIncomingTextMessage({ typeWebhook: 'outgoingMessageStatus' })).toBeNull();
+    expect(parseIncomingNotification({ typeWebhook: 'outgoingMessageStatus' })).toBeNull();
     expect(
-      parseIncomingTextMessage({
+      parseIncomingNotification({
         ...incomingTextMessage,
         typeWebhook: 'outgoingAPIMessageReceived',
       }),
@@ -60,7 +60,7 @@ describe('parseIncomingTextMessage', () => {
 
   it('игнорирует нетекстовые типы сообщений', () => {
     expect(
-      parseIncomingTextMessage({
+      parseIncomingNotification({
         ...incomingTextMessage,
         messageData: { typeMessage: 'imageMessage', fileMessageData: { downloadUrl: 'https://x' } },
       }),
@@ -68,16 +68,52 @@ describe('parseIncomingTextMessage', () => {
   });
 
   it('не падает на мусорных данных', () => {
-    expect(parseIncomingTextMessage(null)).toBeNull();
-    expect(parseIncomingTextMessage('null')).toBeNull();
-    expect(parseIncomingTextMessage({})).toBeNull();
-    expect(parseIncomingTextMessage({ ...incomingTextMessage, senderData: {} })).toBeNull();
+    expect(parseIncomingNotification(null)).toBeNull();
+    expect(parseIncomingNotification('null')).toBeNull();
+    expect(parseIncomingNotification({})).toBeNull();
+    expect(parseIncomingNotification({ ...incomingTextMessage, senderData: {} })).toBeNull();
+  });
+
+  it('разбирает ответ с цитатой (quotedMessage)', () => {
+    const parsed = parseIncomingNotification({
+      ...incomingTextMessage,
+      messageData: {
+        typeMessage: 'quotedMessage',
+        extendedTextMessageData: { text: 'Отвечаю на это', stanzaId: '1164', participant: '1' },
+      },
+    });
+    expect(parsed?.text).toBe('Отвечаю на это');
+  });
+
+  it('не считает номером senderPhoneNumber = 0 (номер скрыт)', () => {
+    const parsed = parseIncomingNotification({
+      ...incomingTextMessage,
+      senderData: { ...incomingTextMessage.senderData, senderPhoneNumber: 0 },
+    });
+    expect(parsed?.senderPhone).toBeNull();
+  });
+
+  it('не принимает за сообщение статусы и смену состояния', () => {
+    expect(
+      parseIncomingNotification({
+        typeWebhook: 'outgoingMessageStatus',
+        chatId: '10000000',
+        idMessage: 'BAE5',
+        status: 'delivered',
+      }),
+    ).toBeNull();
+    expect(
+      parseIncomingNotification({
+        typeWebhook: 'stateInstanceChanged',
+        stateInstance: 'authorized',
+      }),
+    ).toBeNull();
   });
 
   it('подставляет текущее время, если timestamp отсутствует', () => {
     const { timestamp, ...withoutTimestamp } = incomingTextMessage;
     expect(timestamp).toBeDefined();
-    const parsed = parseIncomingTextMessage(withoutTimestamp);
+    const parsed = parseIncomingNotification(withoutTimestamp);
     expect(parsed?.timestamp).toBeGreaterThan(0);
   });
 });

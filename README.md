@@ -26,6 +26,11 @@ _Положите файлы в `docs/` и раскомментируйте ст
   методом `CheckAccount`, который возвращает числовой `chatId` MAX. Соответствие «номер → chatId» сохраняется.
 - Отправка текста методом `SendMessage` с оптимистичным отображением и статусами
   «отправляется / отправлено / ошибка». `Enter` — отправить, `Shift+Enter` — перенос строки, лимит 4000 символов.
+- Список чатов загружается с сервера методом `GetChats` (как в консоли GREEN-API), превью последнего сообщения
+  подгружается по очереди через `GetChatHistory`; чаты отсортированы по свежести.
+- История переписки при каждом открытии чата загружается с сервера методом `GetChatHistory`, поэтому она
+  появляется и на другом компьютере. localStorage — только кэш. MAX отдаёт не больше 5000 сообщений
+  и не глубже 3 месяцев: более старые сообщения недоступны.
 - Приём входящих последовательным HTTP-опросом очереди: каждое уведомление обязательно удаляется,
   даже нерелевантное (статусы, исходящие, медиа), иначе очередь встанет.
 - Входящие слева, исходящие справа, время сообщения, автоскролл вниз, счётчик непрочитанных в списке чатов.
@@ -52,7 +57,8 @@ _Положите файлы в `docs/` и раскомментируйте ст
 ```
 src/
   api/
-    greenApi.ts        getStateInstance, checkAccount, getAvatar, sendMessage, receiveNotification, deleteNotification
+    greenApi.ts        getStateInstance, getSettings, getChats, checkAccount, getAvatar, getChatHistory, sendMessage,
+                       receiveNotification, deleteNotification
     errors.ts          GreenApiError и понятные сообщения для 400/401/403/429/466/5xx и сетевых сбоев
   types/
     green.ts           типы запросов, ответов и уведомлений GREEN-API
@@ -66,7 +72,10 @@ src/
   components/          LoginForm, ChatList, NewChatForm, ChatWindow, MessageList, MessageInput, ChatAvatar
   utils/
     phone.ts           нормализация и форматирование номера
-    notification.ts    разбор тела уведомления
+    notification.ts    parseIncomingNotification — разбор тела уведомления
+    history.ts         normalizeHistory (ответ GetChatHistory) и mergeMessages (дедупликация по idMessage)
+    chatId.ts          normalizeChatId — единый формат chatId для сравнения
+    devLog.ts          диагностические логи только в режиме разработки
     guards.ts          проверки данных из сети без `any`
     storage.ts         безопасные обёртки над localStorage
 ```
@@ -136,6 +145,9 @@ curl -X POST "https://api.green-api.com/waInstance{{idInstance}}/setSettings/{{a
 
 Настройки применяются в течение ~5 минут, инстанс при этом перезапускается.
 
+После входа приложение само проверяет эти настройки методом `GetSettings` и показывает баннер, если
+`webhookUrl` не пустой или `incomingWebhook` выключен: в этом случае проблема в настройках инстанса, а не в коде.
+
 ## Сценарий проверки
 
 1. `npm run dev`, открыть http://localhost:5173.
@@ -167,12 +179,16 @@ while (не размонтировано) {
 - `deleteNotification` вызывается в блоке `finally`, поэтому очередь не встаёт, даже если обработчик упал;
 - обрабатывается только `typeWebhook === "incomingMessageReceived"`, текст берётся из
   `messageData.textMessageData.textMessage` (`typeMessage: "textMessage"`) или
-  `messageData.extendedTextMessageData.text` (`typeMessage: "extendedTextMessage"`), остальное игнорируется;
+  `messageData.extendedTextMessageData.text` (`extendedTextMessage` — текст со ссылкой, `quotedMessage` — ответ
+  с цитатой), остальное игнорируется;
 - чат определяется по `senderData.chatId`: сначала по точному совпадению, затем по номеру
   (`senderData.senderPhoneNumber` или `номер@c.us`) — это нужно, потому что в MAX `chatId` числовой,
   а запасной формат `79991234567@c.us` используется, когда `CheckAccount` недоступен;
 - если чата нет — он создаётся автоматически;
-- повторно доставленные уведомления отсеиваются по `idMessage`.
+- повторно доставленные уведомления и сообщения, пришедшие и из истории, и из очереди, отсеиваются по `idMessage`
+  (`mergeMessages`);
+- в режиме разработки (`npm run dev`) в консоль пишутся логи `[History]`, `[Polling]`, `[Parser]`,
+  `[DeleteNotification]`, `[Settings]` — без URL запросов и токена.
 
 ## CORS
 

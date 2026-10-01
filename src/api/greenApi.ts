@@ -1,11 +1,14 @@
 import type {
   CheckAccountResponse,
   Credentials,
+  InstanceSettings,
   NotificationEnvelope,
+  RemoteChat,
   SendMessageResponse,
   StateInstanceResponse,
 } from '../types/green';
 import { GreenApiError, httpError, networkError } from './errors';
+import { devLog } from '../utils/devLog';
 import { isRecord, readNumber, readString } from '../utils/guards';
 
 /** Максимальная длина текстового сообщения в SendMessage. */
@@ -28,6 +31,9 @@ async function call(url: string, init: RequestInit, signal?: AbortSignal): Promi
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw error;
     }
+    // URL не логируем: в нём apiTokenInstance. Имени метода достаточно для диагностики.
+    const method = /\/waInstance\d+\/([^/?]+)/.exec(url)?.[1] ?? 'unknown';
+    devLog('API', `${method}: сетевой сбой`, error instanceof Error ? error.message : error);
     throw networkError();
   }
 
@@ -131,6 +137,74 @@ export async function sendMessage(
 }
 
 /**
+ * POST /waInstance{id}/getChatHistory/{token}
+ * Возвращает «сырой» массив сообщений чата (новые сверху) — разбор в `utils/history.ts`.
+ * MAX отдаёт не больше 5000 сообщений и не глубже 3 месяцев.
+ */
+export async function getChatHistory(
+  credentials: Credentials,
+  chatId: string,
+  count: number,
+  signal?: AbortSignal,
+): Promise<unknown[]> {
+  const data = await call(
+    buildUrl(credentials, 'getChatHistory'),
+    { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ chatId, count }) },
+    signal,
+  );
+  return Array.isArray(data) ? (data as unknown[]) : [];
+}
+
+/**
+ * GET /waInstance{id}/getChats/{token}
+ * Список чатов аккаунта MAX — тот же, что виден в консоли GREEN-API.
+ * Последнего сообщения и времени в ответе нет: их даёт GetChatHistory при открытии чата.
+ */
+export async function getChats(
+  credentials: Credentials,
+  signal?: AbortSignal,
+): Promise<RemoteChat[]> {
+  const data = await call(buildUrl(credentials, 'getChats'), { method: 'GET' }, signal);
+  if (!Array.isArray(data)) {
+    return [];
+  }
+  const chats: RemoteChat[] = [];
+  for (const item of data as unknown[]) {
+    if (!isRecord(item)) {
+      continue;
+    }
+    const chatId = readString(item, 'chatId');
+    if (chatId === null || chatId === '') {
+      continue;
+    }
+    // phoneNumber = 0, если номер скрыт или это группа.
+    const phoneNumber = readNumber(item, 'phoneNumber');
+    chats.push({
+      chatId,
+      name: readString(item, 'name') ?? '',
+      type: readString(item, 'type'),
+      phone: phoneNumber !== null && phoneNumber > 0 ? String(phoneNumber) : null,
+    });
+  }
+  return chats;
+}
+
+/** GET /waInstance{id}/getSettings/{token} — нужны только поля, влияющие на приём сообщений. */
+export async function getSettings(
+  credentials: Credentials,
+  signal?: AbortSignal,
+): Promise<InstanceSettings> {
+  const data = await call(buildUrl(credentials, 'getSettings'), { method: 'GET' }, signal);
+  if (!isRecord(data)) {
+    throw new GreenApiError('Не удалось прочитать настройки инстанса.', 'unknown');
+  }
+  return {
+    webhookUrl: readString(data, 'webhookUrl') ?? '',
+    incomingWebhook: readString(data, 'incomingWebhook') ?? '',
+  };
+}
+
+/**
  * GET /waInstance{id}/receiveNotification/{token}?receiveTimeout=5
  * `null` — очередь пуста.
  */
@@ -140,7 +214,22 @@ export async function receiveNotification(
   signal?: AbortSignal,
 ): Promise<NotificationEnvelope | null> {
   const url = buildUrl(credentials, 'receiveNotification', `?receiveTimeout=${receiveTimeout}`);
-  const data = await call(url, { method: 'GET' }, signal);
+  let data: unknown;
+  try {
+    data = await call(url, { method: 'GET' }, signal);
+  } catch (error) {
+    // По документации ReceiveNotification отвечает 400, когда у инстанса задан webhookUrl:
+    // тогда уведомления уходят на вебхук, а очередь HTTP API недоступна.
+    if (error instanceof GreenApiError && error.status === 400) {
+      throw new GreenApiError(
+        'Очередь уведомлений недоступна (400): у инстанса задан webhookUrl. ' +
+          'Очистите webhookUrl в консоли GREEN-API и подождите около минуты.',
+        'badRequest',
+        400,
+      );
+    }
+    throw error;
+  }
   if (!isRecord(data)) {
     return null;
   }
