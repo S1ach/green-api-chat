@@ -63,14 +63,14 @@ function AttachmentView({ attachment }: { attachment: Attachment }) {
       </span>
       <span className={styles.attachmentText}>
         <span className={styles.attachmentLabel}>{attachmentLabel(attachment)}</span>
-        {attachment.fileName !== null && (
-          <span className={styles.attachmentName}>{attachment.fileName}</span>
+        {attachment.name !== null && (
+          <span className={styles.attachmentName}>{attachment.name}</span>
         )}
       </span>
     </>
   );
 
-  // Сами файлы приложение не показывает: вложение можно открыть по ссылке из GREEN-API.
+  // Сами файлы приложение не показывает: вложение открывается по ссылке (файл или карта).
   return attachment.url === null ? (
     <span className={styles.attachment}>{content}</span>
   ) : (

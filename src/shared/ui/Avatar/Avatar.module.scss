@@ -13,6 +13,11 @@
   user-select: none;
 }
 
+// Служебный чат со значком — на фирменном цвете, а не на случайном градиенте.
+.themed {
+  background: var(--button-primary);
+}
+
 .red {
   background: var(--gradient-red);
 }

@@ -88,7 +88,7 @@ describe('MessageBubble', () => {
   it('показывает вложение: что это, имя файла, ссылку и подпись', () => {
     const message = renderMessage({
       text: 'Схема проезда',
-      attachment: { kind: 'image', url: 'https://storage.example/map.jpg', fileName: 'map.jpg' },
+      attachment: { kind: 'image', url: 'https://storage.example/map.jpg', name: 'map.jpg' },
     });
 
     const link = within(message).getByRole('link', { name: /Фото/ });
@@ -100,7 +100,7 @@ describe('MessageBubble', () => {
   it('вложение без файла показывает без ссылки', () => {
     const message = renderMessage({
       text: '',
-      attachment: { kind: 'location', url: null, fileName: null },
+      attachment: { kind: 'location', url: null, name: null },
     });
 
     expect(within(message).getByText('Геопозиция')).toBeInTheDocument();

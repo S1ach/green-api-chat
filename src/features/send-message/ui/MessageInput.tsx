@@ -1,9 +1,27 @@
-import { ArrowUp } from 'lucide-react';
-import { useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { ArrowUp, FileText, X } from 'lucide-react';
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type KeyboardEvent,
+} from 'react';
 import { MAX_MESSAGE_LENGTH } from '@/shared/config';
 import { useAppDispatch } from '@/shared/lib/store';
-import { IconButton } from '@/shared/ui';
-import { sendTextMessage } from '../model/sendMessage';
+import { IconButton, Modal } from '@/shared/ui';
+import { formatFileSize, validateFile } from '../lib/file';
+import {
+  sendContactMessage,
+  sendFileMessage,
+  sendLocationMessage,
+  sendTextMessage,
+  type Coordinates,
+  type SharedContact,
+} from '../model/sendMessage';
+import { AttachMenu } from './AttachMenu';
+import { ContactPicker } from './ContactPicker';
+import { LocationForm } from './LocationForm';
 import styles from './MessageInput.module.scss';
 
 interface Props {
@@ -15,15 +33,22 @@ const COUNTER_THRESHOLD = MAX_MESSAGE_LENGTH - 200;
 /** Поле растёт вместе с текстом до этой высоты, дальше появляется прокрутка. */
 const MAX_HEIGHT_PX = 160;
 
-/** Поле ввода сообщения: Enter отправляет, Shift+Enter переносит строку. */
+/**
+ * Поле ввода сообщения: Enter отправляет, Shift+Enter переносит строку.
+ * Через скрепку отправляются файл (текст из поля становится подписью), контакт и геопозиция.
+ */
 export function MessageInput({ chatId }: Props) {
   const dispatch = useAppDispatch();
   // Черновик — локальное состояние компонента: больше он никому не нужен.
   const [text, setText] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<'contact' | 'location' | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const trimmed = text.trim();
-  const canSend = trimmed !== '';
+  const canSend = trimmed !== '' || file !== null;
 
   // Высота поля подстраивается под текст.
   useLayoutEffect(() => {
@@ -40,8 +65,13 @@ export function MessageInput({ chatId }: Props) {
     }
     // Поле очищается сразу, поэтому повторное нажатие не отправит то же сообщение ещё раз.
     // Само сообщение уже в ленте: со статусом «отправляется», а при ошибке — с кнопкой повтора.
-    void dispatch(sendTextMessage(chatId, trimmed));
+    if (file !== null) {
+      void dispatch(sendFileMessage(chatId, file, trimmed));
+    } else {
+      void dispatch(sendTextMessage(chatId, trimmed));
+    }
     setText('');
+    setFile(null);
     inputRef.current?.focus();
   };
 
@@ -58,30 +88,101 @@ export function MessageInput({ chatId }: Props) {
     }
   };
 
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const picked = event.target.files?.[0];
+    // Значение сбрасываем, чтобы тот же файл можно было выбрать ещё раз.
+    event.target.value = '';
+    if (picked === undefined) {
+      return;
+    }
+    const error = validateFile(picked);
+    setFileError(error);
+    setFile(error === null ? picked : null);
+    inputRef.current?.focus();
+  };
+
+  const closeDialog = () => {
+    setDialog(null);
+    inputRef.current?.focus();
+  };
+
+  const handleContact = (contact: SharedContact) => {
+    void dispatch(sendContactMessage(chatId, contact));
+    closeDialog();
+  };
+
+  const handleLocation = (coordinates: Coordinates) => {
+    void dispatch(sendLocationMessage(chatId, coordinates));
+    closeDialog();
+  };
+
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
-      <div className={styles.field}>
-        <textarea
-          ref={inputRef}
-          className={styles.input}
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Сообщение"
-          aria-label="Текст сообщения"
-          rows={1}
-          maxLength={MAX_MESSAGE_LENGTH}
-          autoFocus
+    <div className={styles.composer}>
+      {file !== null && (
+        <div className={styles.file}>
+          <FileText className={styles.fileIcon} size={20} aria-hidden="true" />
+          <span className={styles.fileName}>{file.name}</span>
+          <span className={styles.fileSize}>{formatFileSize(file.size)}</span>
+          <IconButton size="xsmall" onClick={() => setFile(null)} aria-label="Убрать файл">
+            <X size={16} aria-hidden="true" />
+          </IconButton>
+        </div>
+      )}
+      {fileError !== null && (
+        <p className={styles.fileError} role="alert">
+          {fileError}
+        </p>
+      )}
+
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <AttachMenu
+          onFile={() => fileInputRef.current?.click()}
+          onContact={() => setDialog('contact')}
+          onLocation={() => setDialog('location')}
         />
-        {text.length > COUNTER_THRESHOLD && (
-          <span className={styles.counter}>
-            {text.length} / {MAX_MESSAGE_LENGTH}
-          </span>
-        )}
-      </div>
-      <IconButton variant="primary" type="submit" disabled={!canSend} aria-label="Отправить">
-        <ArrowUp size={22} strokeWidth={2.4} aria-hidden="true" />
-      </IconButton>
-    </form>
+        {/* Скрытое поле выбора файла: его открывает пункт меню «Файл». */}
+        <input
+          ref={fileInputRef}
+          className={styles.fileInput}
+          type="file"
+          onChange={handleFileChange}
+          aria-label="Файл для отправки"
+          tabIndex={-1}
+        />
+        <div className={styles.field}>
+          <textarea
+            ref={inputRef}
+            className={styles.input}
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={file === null ? 'Сообщение' : 'Подпись к файлу'}
+            aria-label="Текст сообщения"
+            rows={1}
+            maxLength={MAX_MESSAGE_LENGTH}
+            autoFocus
+          />
+          {text.length > COUNTER_THRESHOLD && (
+            <span className={styles.counter}>
+              {text.length} / {MAX_MESSAGE_LENGTH}
+            </span>
+          )}
+        </div>
+        <IconButton variant="primary" type="submit" disabled={!canSend} aria-label="Отправить">
+          <ArrowUp size={22} strokeWidth={2.4} aria-hidden="true" />
+        </IconButton>
+      </form>
+
+      {dialog === 'contact' && (
+        <Modal title="Отправить контакт" onClose={closeDialog}>
+          <ContactPicker onSelect={handleContact} />
+        </Modal>
+      )}
+      {dialog === 'location' && (
+        <Modal title="Отправить геопозицию" onClose={closeDialog}>
+          <LocationForm onSubmit={handleLocation} onCancel={closeDialog} />
+        </Modal>
+      )}
+    </div>
   );
 }

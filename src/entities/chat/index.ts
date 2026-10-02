@@ -1,5 +1,6 @@
-export type { Chat } from './model/types';
+export type { Chat, ChatAvatarInfo } from './model/types';
 export {
+  avatarChecked,
   chatOpened,
   chatReducer,
   chatSelected,
@@ -21,4 +22,5 @@ export {
 } from './model/chatSlice';
 export { loadChatCache, saveChatCache } from './lib/chatCache';
 export { isReadOnlyChat } from './lib/isReadOnlyChat';
+export { isSavedMessagesChat } from './lib/isSavedMessagesChat';
 export { ChatAvatar } from './ui/ChatAvatar';

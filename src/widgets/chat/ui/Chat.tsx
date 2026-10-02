@@ -2,12 +2,11 @@ import { useCallback } from 'react';
 import {
   chatSelected,
   isReadOnlyChat,
-  messageRemoved,
   selectMessages,
   type Chat as ChatModel,
 } from '@/entities/chat';
 import { useChatHistory } from '@/features/load-history';
-import { MessageInput, retryMessage } from '@/features/send-message';
+import { MessageInput, discardMessage, retryMessage } from '@/features/send-message';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/store';
 import { Alert, Button } from '@/shared/ui';
 import { ChatHeader } from './ChatHeader';
@@ -34,7 +33,7 @@ export function Chat({ chat }: Props) {
     [dispatch, chat.id],
   );
   const handleRemove = useCallback(
-    (messageId: string) => dispatch(messageRemoved({ chatId: chat.id, id: messageId })),
+    (messageId: string) => dispatch(discardMessage(chat.id, messageId)),
     [dispatch, chat.id],
   );
 
@@ -42,7 +41,7 @@ export function Chat({ chat }: Props) {
     <section className={styles.chat} aria-label={`Чат: ${chat.title}`}>
       <ChatHeader
         chat={chat}
-        onBack={() => dispatch(chatSelected(null))}
+        onClose={() => dispatch(chatSelected(null))}
         onRefresh={history.retry}
         isRefreshing={history.isLoading}
       />

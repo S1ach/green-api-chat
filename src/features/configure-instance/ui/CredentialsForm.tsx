@@ -17,12 +17,15 @@ export function CredentialsForm() {
     formState: { errors, isSubmitting },
   } = useForm<CredentialsFormValues>({
     resolver: zodResolver(credentialsSchema),
-    defaultValues: { apiUrl: DEFAULT_API_URL, idInstance: '', apiTokenInstance: '' },
+    defaultValues: { apiUrl: DEFAULT_API_URL, mediaUrl: '', idInstance: '', apiTokenInstance: '' },
   });
 
-  const onSubmit = handleSubmit(async (credentials) => {
+  const onSubmit = handleSubmit(async ({ mediaUrl, ...credentials }) => {
     // При успехе форма размонтируется: приложение переходит к чатам.
-    const result = await dispatch(connectInstance(credentials));
+    // Пустой mediaUrl не сохраняем: без него файлы отправляются через apiUrl.
+    const result = await dispatch(
+      connectInstance(mediaUrl === '' ? credentials : { ...credentials, mediaUrl }),
+    );
     if (!result.ok) {
       setError('root', { message: result.error });
     }
@@ -36,6 +39,13 @@ export function CredentialsForm() {
         autoComplete="off"
         error={errors.apiUrl?.message}
         {...register('apiUrl')}
+      />
+      <TextField
+        label="mediaUrl — для отправки файлов, необязательно"
+        placeholder="https://media.green-api.com"
+        autoComplete="off"
+        error={errors.mediaUrl?.message}
+        {...register('mediaUrl')}
       />
       <TextField
         label="idInstance"

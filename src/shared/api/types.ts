@@ -1,6 +1,11 @@
 /** Учётные данные инстанса GREEN-API. */
 export interface Credentials {
   apiUrl: string;
+  /**
+   * Хост для отправки файлов из личного кабинета GREEN-API. Необязателен:
+   * без него файлы отправляются через apiUrl.
+   */
+  mediaUrl?: string;
   idInstance: string;
   apiTokenInstance: string;
 }
@@ -9,6 +14,37 @@ export interface Credentials {
 export interface SendMessageRequest {
   chatId: string;
   message: string;
+}
+
+/** Параметры SendFileByUpload: файл уходит формой multipart/form-data. */
+export interface SendFileRequest {
+  chatId: string;
+  file: File;
+  /** Подпись к файлу; пустая строка — без подписи. */
+  caption: string;
+}
+
+/** Тело запроса SendLocation. */
+export interface SendLocationRequest {
+  chatId: string;
+  latitude: number;
+  longitude: number;
+}
+
+/** Параметры SendContact: контакт должен быть в списке контактов инстанса (GetContacts). */
+export interface SendContactRequest {
+  chatId: string;
+  /** chatId контакта, которым делятся. */
+  contactChatId: string;
+}
+
+/** Элемент ответа GetContacts, приведённый к удобному виду. */
+export interface RemoteContact {
+  chatId: string;
+  /** Имя из записной книжки либо из профиля; пустая строка, если API его не отдал. */
+  name: string;
+  /** Номер телефона или `null`, если он скрыт (в API приходит 0). */
+  phone: string | null;
 }
 
 /** Тело запроса GetChatHistory. */

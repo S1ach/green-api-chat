@@ -5,7 +5,13 @@ export type {
   MessageStatus,
   ReceivedMessage,
 } from './model/types';
-export { attachmentLabel } from './lib/content';
+export {
+  attachmentKindOfFile,
+  attachmentLabel,
+  contactAttachment,
+  locationAttachment,
+  safeUrl,
+} from './lib/content';
 export { normalizeHistory, normalizeJournal } from './lib/history';
 export { describeNotification, parseNotification } from './lib/notification';
 export { MessageBubble } from './ui/MessageBubble';

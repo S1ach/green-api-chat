@@ -22,7 +22,7 @@ export interface GreenApiError {
 const STATUS_MESSAGES: Record<number, { kind: ApiErrorKind; message: string }> = {
   400: {
     kind: 'badRequest',
-    message: 'Некорректный запрос (400). Проверьте номер телефона и текст сообщения.',
+    message: 'Некорректный запрос (400). Проверьте номер телефона и содержимое сообщения.',
   },
   401: {
     kind: 'unauthorized',
@@ -31,6 +31,10 @@ const STATUS_MESSAGES: Record<number, { kind: ApiErrorKind; message: string }> =
   403: {
     kind: 'forbidden',
     message: 'Доступ запрещён (403). Метод недоступен на вашем тарифе или аккаунт заблокирован.',
+  },
+  413: {
+    kind: 'badRequest',
+    message: 'Файл слишком большой (413). GREEN-API принимает файлы до 100 МБ.',
   },
   429: {
     kind: 'rateLimit',

@@ -1,0 +1,41 @@
+@use '@/shared/styles/mixins';
+
+// Всплывающая поверхность: радиус floating и тень — как у Snackbar в max-ui.
+.menu {
+  position: absolute;
+  z-index: 10;
+  min-width: 220px;
+  margin: 0;
+  padding: var(--spacing-size-xs);
+  list-style: none;
+  border-radius: var(--size-border-radius-floating);
+  background-color: var(--background-card);
+  box-shadow: var(--shadow-floating);
+}
+
+.item {
+  @include mixins.resetButton;
+  @include mixins.body;
+
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-size-xl);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--spacing-size-m) var(--spacing-size-xl);
+  border-radius: var(--size-border-radius-action-small);
+  color: var(--text-primary);
+
+  @include mixins.hover {
+    background-color: var(--states-background-hovered-transparent);
+  }
+
+  &:focus-visible {
+    outline: none;
+    background-color: var(--states-background-pressed-transparent);
+  }
+}
+
+.danger {
+  color: var(--text-negative);
+}

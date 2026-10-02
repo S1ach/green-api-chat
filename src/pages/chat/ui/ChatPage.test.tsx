@@ -162,6 +162,23 @@ describe('ChatPage: история сообщений', () => {
   });
 });
 
+describe('ChatPage: закрытие чата', () => {
+  it('кнопка в шапке закрывает чат и возвращает к экрану «Выберите чат»', async () => {
+    api.reply('getChatHistory', [historyItem('a', '1001', 'Первое')]);
+    const { user, open, store } = setup();
+    expect(screen.getByText('Выберите чат')).toBeInTheDocument();
+
+    await open('Анна');
+    expect(screen.queryByText('Выберите чат')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Закрыть чат' }));
+
+    expect(screen.getByText('Выберите чат')).toBeInTheDocument();
+    expect(screen.queryByRole('log')).not.toBeInTheDocument();
+    expect(store.getState().chat.activeChatId).toBeNull();
+  });
+});
+
 describe('ChatPage: настройки приёма сообщений', () => {
   it('объясняет, почему не приходят сообщения из MAX, и включает нужные уведомления', async () => {
     api.reply('getSettings', { webhookUrl: '', incomingWebhook: 'no' });

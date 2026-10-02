@@ -4,5 +4,7 @@ export { Button } from './Button/Button';
 export { Counter } from './Counter/Counter';
 export { IconButton } from './IconButton/IconButton';
 export { Loader } from './Loader/Loader';
+export { Menu, MenuItem } from './Menu/Menu';
+export { Modal } from './Modal/Modal';
 export { Spinner } from './Spinner/Spinner';
 export { TextField } from './TextField/TextField';

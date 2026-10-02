@@ -7,8 +7,8 @@ import styles from './ChatHeader.module.scss';
 
 interface Props {
   chat: Chat;
-  /** Возврат к списку чатов — кнопка видна только на узком экране. */
-  onBack: () => void;
+  /** Закрыть чат: на широком экране открывается заглушка, на узком — список чатов. */
+  onClose: () => void;
   /** Перечитать историю чата с сервера. */
   onRefresh: () => void;
   isRefreshing: boolean;
@@ -27,10 +27,10 @@ function subtitle(chat: Chat): string {
   return CHAT_TYPE_LABELS[chat.chatType ?? ''] ?? `chatId: ${chat.id}`;
 }
 
-export function ChatHeader({ chat, onBack, onRefresh, isRefreshing }: Props) {
+export function ChatHeader({ chat, onClose, onRefresh, isRefreshing }: Props) {
   return (
     <header className={styles.header}>
-      <IconButton className={styles.back} onClick={onBack} aria-label="К списку чатов">
+      <IconButton className={styles.close} onClick={onClose} aria-label="Закрыть чат">
         <ArrowLeft size={22} aria-hidden="true" />
       </IconButton>
       <ChatAvatar chat={chat} size={40} />

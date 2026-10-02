@@ -1,0 +1,11 @@
+.root {
+  position: relative;
+  flex: none;
+}
+
+// Меню раскрывается вверх от скрепки: под ней — край окна.
+.menu {
+  bottom: calc(100% + var(--spacing-size-m));
+  left: 0;
+  min-width: 200px;
+}

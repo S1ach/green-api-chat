@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { greenApi } from './greenApi';
+import { buildFileForm, greenApi } from './greenApi';
 import { rateLimitReducer } from './rateLimitSlice';
 import type { Credentials } from './types';
 
@@ -114,6 +114,112 @@ describe('sendMessage', () => {
   });
 });
 
+describe('отправка файла, геопозиции и контакта', () => {
+  const file = new File(['%PDF-1.4'], 'Договор.pdf', { type: 'application/pdf' });
+
+  it('buildFileForm собирает форму SendFileByUpload: чат, имя файла, подпись и сам файл', () => {
+    const form = buildFileForm({ chatId: '10000000', file, caption: 'На подпись' });
+
+    expect(form.get('chatId')).toBe('10000000');
+    expect(form.get('fileName')).toBe('Договор.pdf');
+    expect(form.get('caption')).toBe('На подпись');
+    expect(form.get('file')).toBeInstanceOf(File);
+    expect((form.get('file') as File).name).toBe('Договор.pdf');
+  });
+
+  it('buildFileForm не добавляет пустую подпись', () => {
+    expect(buildFileForm({ chatId: '10000000', file, caption: '' }).has('caption')).toBe(false);
+  });
+
+  it('sendFileByUpload отправляет файл на mediaUrl и возвращает ссылку на него', async () => {
+    respond({ idMessage: '1763115112345', urlFile: 'https://storage.example/contract.pdf' });
+    const store = createStore({
+      credentials: { ...credentials, mediaUrl: 'https://media.green-api.com/' },
+    });
+
+    const result = await store
+      .dispatch(
+        greenApi.endpoints.sendFileByUpload.initiate({ chatId: '10000000', file, caption: '' }),
+      )
+      .unwrap();
+
+    expect(result).toEqual({
+      idMessage: '1763115112345',
+      urlFile: 'https://storage.example/contract.pdf',
+    });
+    const request = lastRequest();
+    expect(request.method).toBe('POST');
+    expect(request.url).toBe(
+      'https://media.green-api.com/waInstance1101000001/sendFileByUpload/test-token',
+    );
+    // Заголовок JSON к форме не добавляется: границу multipart выставляет сам браузер.
+    expect(request.headers.get('content-type') ?? '').not.toContain('application/json');
+  });
+
+  it('без mediaUrl отправляет файл через apiUrl', async () => {
+    respond({ idMessage: '1763115112345' });
+    const store = createStore();
+
+    await store
+      .dispatch(
+        greenApi.endpoints.sendFileByUpload.initiate({ chatId: '10000000', file, caption: '' }),
+      )
+      .unwrap();
+
+    expect(lastRequest().url).toBe(`${BASE}/sendFileByUpload/test-token`);
+  });
+
+  it('объясняет ответ 413: файл слишком большой', async () => {
+    respond({ message: 'request entity too large' }, 413);
+    const store = createStore();
+
+    const result = await store.dispatch(
+      greenApi.endpoints.sendFileByUpload.initiate({ chatId: '10000000', file, caption: '' }),
+    );
+
+    expect(result.error).toMatchObject({ status: 413 });
+    expect((result.error as { message: string }).message).toContain('до 100 МБ');
+  });
+
+  it('sendLocation отправляет координаты числами', async () => {
+    respond({ idMessage: '1762333029830' });
+    const store = createStore();
+
+    await store
+      .dispatch(
+        greenApi.endpoints.sendLocation.initiate({
+          chatId: '10000000',
+          latitude: 51.1035035,
+          longitude: 71.3996933,
+        }),
+      )
+      .unwrap();
+
+    const request = lastRequest();
+    expect(request.url).toBe(`${BASE}/sendLocation/test-token`);
+    expect(await request.json()).toEqual({
+      chatId: '10000000',
+      latitude: 51.1035035,
+      longitude: 71.3996933,
+    });
+  });
+
+  it('sendContact передаёт chatId контакта во вложенном объекте contact', async () => {
+    respond({ idMessage: '1762333029831' });
+    const store = createStore();
+
+    await store
+      .dispatch(
+        greenApi.endpoints.sendContact.initiate({ chatId: '10000000', contactChatId: '10000001' }),
+      )
+      .unwrap();
+
+    const request = lastRequest();
+    expect(request.url).toBe(`${BASE}/sendContact/test-token`);
+    expect(await request.json()).toEqual({ chatId: '10000000', contact: { chatId: '10000001' } });
+  });
+});
+
 describe('receiveNotification и deleteNotification', () => {
   it('возвращает конверт уведомления и передаёт receiveTimeout', async () => {
     const body = { typeWebhook: 'incomingMessageReceived' };
@@ -200,6 +306,33 @@ describe('справочные методы', () => {
       { chatId: '10000000', name: 'Иван', type: 'user', phone: '79991234567' },
       { chatId: '-100', name: 'Группа', type: 'group', phone: null },
     ]);
+  });
+
+  it('getContacts берёт имя из записной книжки, а без него — из профиля', async () => {
+    respond([
+      { chatId: '10000001', name: 'Люся', contactName: 'Люся Сидорова', phoneNumber: 79998887766 },
+      { chatId: '10000002', name: 'Профиль', contactName: '', phoneNumber: 0 },
+      { name: 'без chatId' },
+    ]);
+    const store = createStore();
+
+    const contacts = await store.dispatch(greenApi.endpoints.getContacts.initiate()).unwrap();
+
+    expect(lastRequest().url).toBe(`${BASE}/getContacts/test-token`);
+    expect(contacts).toEqual([
+      { chatId: '10000001', name: 'Люся Сидорова', phone: '79998887766' },
+      { chatId: '10000002', name: 'Профиль', phone: null },
+    ]);
+  });
+
+  it('getAccountSettings возвращает chatId собственного чата', async () => {
+    respond({ phone: '79991234567', stateInstance: 'authorized', chatId: '10000000' });
+    const store = createStore();
+
+    const chatId = await store.dispatch(greenApi.endpoints.getAccountSettings.initiate()).unwrap();
+
+    expect(lastRequest().url).toBe(`${BASE}/getAccountSettings/test-token`);
+    expect(chatId).toBe('10000000');
   });
 
   it('checkAccount отправляет номер числом', async () => {

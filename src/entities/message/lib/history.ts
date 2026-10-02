@@ -131,7 +131,8 @@ function sameContent(a: Message, b: Message): boolean {
     a.text === b.text &&
     a.timestamp === b.timestamp &&
     a.status === b.status &&
-    a.attachment?.url === b.attachment?.url
+    a.attachment?.url === b.attachment?.url &&
+    a.attachment?.name === b.attachment?.name
   );
 }
 
@@ -155,9 +156,13 @@ export function mergeMessages(current: Message[], incoming: Message[]): Message[
     }
     const status = laterStatus(known.status, message.status);
     const merged: Message = { ...known, ...message, ...(status ? { status } : {}) };
-    // Ссылку на файл отдают не все методы: уже известную не теряем.
-    if (merged.attachment && merged.attachment.url === null && known.attachment?.url) {
-      merged.attachment = { ...merged.attachment, ...known.attachment };
+    // Ссылку и подпись вложения отдают не все методы: уже известные не теряем.
+    if (merged.attachment && known.attachment) {
+      merged.attachment = {
+        ...merged.attachment,
+        url: merged.attachment.url ?? known.attachment.url,
+        name: merged.attachment.name ?? known.attachment.name,
+      };
     }
     if (merged.status !== 'error') {
       delete merged.error;

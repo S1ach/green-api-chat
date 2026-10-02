@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import styles from './Avatar.module.scss';
 
 const GRADIENTS = ['red', 'orange', 'green', 'blue', 'purple'] as const;
@@ -33,6 +33,10 @@ interface Props {
   seed: string;
   /** Ссылка на картинку; пустая строка — показать инициалы. */
   src?: string;
+  /** Значок вместо инициалов и картинки — для служебных чатов вроде «Избранного». */
+  icon?: ReactNode;
+  /** Картинка по ссылке не открылась — можно запросить другую. */
+  onError?: (src: string) => void;
   size?: number;
   className?: string;
 }
@@ -41,10 +45,22 @@ interface Props {
  * Аватар как в max-ui: круг с картинкой либо инициалы на фирменном градиенте.
  * Декоративный — имя собеседника всегда написано рядом.
  */
-export function Avatar({ name, seed, src = '', size = 48, className }: Props) {
+export function Avatar({ name, seed, src = '', icon, onError, size = 48, className }: Props) {
   // Ссылки на аватар живут недолго: запоминаем, какая именно перестала открываться.
   const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
   const style: CSSProperties = { width: size, height: size, fontSize: Math.round(size * 0.38) };
+
+  if (icon !== undefined) {
+    return (
+      <span
+        className={clsx(styles.avatar, styles.themed, className)}
+        style={style}
+        aria-hidden="true"
+      >
+        {icon}
+      </span>
+    );
+  }
 
   if (src === '' || src === brokenSrc) {
     return (
@@ -65,7 +81,10 @@ export function Avatar({ name, seed, src = '', size = 48, className }: Props) {
       src={src}
       alt=""
       loading="lazy"
-      onError={() => setBrokenSrc(src)}
+      onError={() => {
+        setBrokenSrc(src);
+        onError?.(src);
+      }}
     />
   );
 }

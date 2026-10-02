@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Message, ReceivedMessage } from '@/entities/message/@x/chat';
 import {
+  avatarChecked,
   chatOpened,
   chatReducer,
   chatSelected,
@@ -53,6 +54,39 @@ describe('resolveChatId', () => {
 
   it('возвращает null, если подходящего чата нет', () => {
     expect(resolveChatId(initialChatState, CHAT, '79991234567')).toBeNull();
+  });
+});
+
+describe('chatSlice: аватар чата', () => {
+  const avatar = (state: ChatState) => state.chats[CHAT]?.avatar;
+
+  it('запоминает ссылку и время следующего запроса', () => {
+    const state = chatReducer(
+      openChat(CHAT, '79991234567'),
+      avatarChecked({ chatId: CHAT, url: 'https://i.example/a.jpg', refreshAt: 500 }),
+    );
+
+    expect(avatar(state)).toEqual({ url: 'https://i.example/a.jpg', refreshAt: 500 });
+  });
+
+  it('при неудачном запросе оставляет прежнюю ссылку и откладывает следующую попытку', () => {
+    const loaded = chatReducer(
+      openChat(CHAT, '79991234567'),
+      avatarChecked({ chatId: CHAT, url: 'https://i.example/a.jpg', refreshAt: 500 }),
+    );
+    const failed = chatReducer(loaded, avatarChecked({ chatId: CHAT, url: null, refreshAt: 900 }));
+
+    expect(avatar(failed)).toEqual({ url: 'https://i.example/a.jpg', refreshAt: 900 });
+  });
+
+  it('пустая ссылка означает, что аватара нет: прежняя стирается', () => {
+    const loaded = chatReducer(
+      openChat(CHAT, '79991234567'),
+      avatarChecked({ chatId: CHAT, url: 'https://i.example/a.jpg', refreshAt: 500 }),
+    );
+    const removed = chatReducer(loaded, avatarChecked({ chatId: CHAT, url: '', refreshAt: 900 }));
+
+    expect(avatar(removed)).toEqual({ url: '', refreshAt: 900 });
   });
 });
 
@@ -127,7 +161,7 @@ describe('chatSlice: сообщения из очереди уведомлени
   it('для вложения без подписи показывает в превью его название', () => {
     const photo = received({
       ...incomingMessage('photo-1', 10, ''),
-      attachment: { kind: 'image', url: 'https://storage.example/a.png', fileName: 'a.png' },
+      attachment: { kind: 'image', url: 'https://storage.example/a.png', name: 'a.png' },
     });
 
     expect(chatReducer(initialChatState, messageReceived(photo)).chats[CHAT]?.lastPreview).toBe(
@@ -281,6 +315,34 @@ describe('chatSlice: отправка', () => {
     );
 
     expect(sent.messages[CHAT]).toEqual([{ ...queued, id: 'BAE5', status: 'sent' }]);
+  });
+
+  it('отправленному файлу добавляет ссылку из ответа SendFileByUpload', () => {
+    const file: Message = {
+      ...queued,
+      text: '',
+      attachment: { kind: 'document', url: null, name: 'Договор.pdf' },
+    };
+    const sent = chatReducer(
+      chatReducer(openChat(CHAT, '79991234567'), messageQueued(file)),
+      messageSendSucceeded({
+        chatId: CHAT,
+        localId: 'local-1',
+        idMessage: 'BAE5',
+        fileUrl: 'https://storage.example/contract.pdf',
+      }),
+    );
+
+    expect(sent.messages[CHAT]?.[0]).toMatchObject({
+      id: 'BAE5',
+      status: 'sent',
+      attachment: {
+        kind: 'document',
+        url: 'https://storage.example/contract.pdf',
+        name: 'Договор.pdf',
+      },
+    });
+    expect(sent.chats[CHAT]?.lastPreview).toBe('Файл');
   });
 
   it('не показывает сообщение второй раз, если история вернула его раньше ответа SendMessage', () => {

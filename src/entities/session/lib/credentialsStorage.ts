@@ -16,7 +16,9 @@ export function loadCredentials(): Credentials | null {
   if (!apiUrl || !idInstance || !apiTokenInstance) {
     return null;
   }
-  return { apiUrl, idInstance, apiTokenInstance };
+  // mediaUrl необязателен: его нет в записях, сохранённых до появления отправки файлов.
+  const mediaUrl = readString(raw, 'mediaUrl');
+  return { apiUrl, idInstance, apiTokenInstance, ...(mediaUrl ? { mediaUrl } : {}) };
 }
 
 export function saveCredentials(credentials: Credentials): void {

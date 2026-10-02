@@ -5,15 +5,21 @@
  */
 const REQUESTS_PER_SECOND: Record<string, number> = {
   getStateInstance: 1,
+  getAccountSettings: 1,
   getSettings: 1,
   setSettings: 1,
   getChats: 1,
+  getContacts: 1,
   getChatHistory: 1,
   lastIncomingMessages: 1,
   lastOutgoingMessages: 1,
   checkAccount: 10,
   getAvatar: 10,
+  getContactInfo: 10,
   sendMessage: 50,
+  sendFileByUpload: 50,
+  sendLocation: 50,
+  sendContact: 50,
 };
 
 /** Запас к интервалу: сеть доставляет запросы неравномерно, а сервер считает по своему времени. */

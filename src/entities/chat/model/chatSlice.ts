@@ -170,7 +170,7 @@ const chatSlice = createSlice({
       },
     },
 
-    /** Выбор чата в списке; `null` — вернуться к списку (мобильный вид). */
+    /** Выбор чата в списке; `null` — закрыть открытый чат. */
     chatSelected(state, action: PayloadAction<string | null>) {
       const chatId = action.payload;
       if (chatId === null) {
@@ -209,6 +209,21 @@ const chatSlice = createSlice({
           lastPreview: '',
         };
         state.chatOrder.push(remote.chatId);
+      }
+    },
+
+    /**
+     * Аватар чата запрошен. `url: null` — запрос не удался: прежняя ссылка остаётся,
+     * меняется только время следующей попытки.
+     */
+    avatarChecked(
+      state,
+      action: PayloadAction<{ chatId: string; url: string | null; refreshAt: number }>,
+    ) {
+      const { chatId, url, refreshAt } = action.payload;
+      const chat = state.chats[chatId];
+      if (chat) {
+        chat.avatar = { url: url ?? chat.avatar?.url ?? '', refreshAt };
       }
     },
 
@@ -282,14 +297,20 @@ const chatSlice = createSlice({
     },
 
     /**
-     * SendMessage подтвердил отправку: временный идентификатор заменяется на idMessage.
+     * GREEN-API подтвердил отправку: временный идентификатор заменяется на idMessage.
      * Если уведомление или история успели принести это сообщение раньше, остаётся одно.
+     * `fileUrl` — ссылка на загруженный файл из ответа SendFileByUpload.
      */
     messageSendSucceeded(
       state,
-      action: PayloadAction<{ chatId: string; localId: string; idMessage: string }>,
+      action: PayloadAction<{
+        chatId: string;
+        localId: string;
+        idMessage: string;
+        fileUrl?: string | null;
+      }>,
     ) {
-      const { chatId, localId, idMessage } = action.payload;
+      const { chatId, localId, idMessage, fileUrl } = action.payload;
       const list = state.messages[chatId];
       const local = list?.find(({ id }) => id === localId);
       if (list === undefined || local === undefined) {
@@ -297,6 +318,9 @@ const chatSlice = createSlice({
       }
       const sent: Message = { ...local, id: idMessage, status: 'sent' };
       delete sent.error;
+      if (sent.attachment && fileUrl) {
+        sent.attachment = { ...sent.attachment, url: fileUrl };
+      }
       state.messages[chatId] = mergeMessages(
         list.filter(({ id }) => id !== localId),
         list.some(({ id }) => id === idMessage) ? [] : [sent],
@@ -304,7 +328,7 @@ const chatSlice = createSlice({
       summarize(state, chatId);
     },
 
-    /** SendMessage не принял сообщение: оно остаётся в чате с ошибкой и возможностью повтора. */
+    /** GREEN-API не принял сообщение: оно остаётся в чате с ошибкой и возможностью повтора. */
     messageSendFailed(
       state,
       action: PayloadAction<{ chatId: string; localId: string; error: string }>,
@@ -357,6 +381,7 @@ const chatSlice = createSlice({
 
 export const chatReducer = chatSlice.reducer;
 export const {
+  avatarChecked,
   chatsRestored,
   chatOpened,
   chatSelected,

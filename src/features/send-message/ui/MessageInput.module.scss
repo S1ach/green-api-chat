@@ -1,12 +1,68 @@
 @use '@/shared/styles/mixins';
 
-.form {
+.composer {
   display: flex;
-  align-items: flex-end;
+  flex: none;
+  flex-direction: column;
   gap: var(--spacing-size-m);
   padding: var(--spacing-size-xl) var(--spacing-size2xl);
   border-top: 1px solid var(--divider-secondary);
   background-color: var(--background-primary);
+}
+
+.form {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-size-m);
+}
+
+// Выбранный файл ждёт отправки: показываем его над полем, текст в поле станет подписью.
+.file {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-size-m);
+  min-width: 0;
+  padding: var(--spacing-size-xs) var(--spacing-size-xs) var(--spacing-size-xs)
+    var(--spacing-size-xl);
+  border-radius: var(--size-border-radius-action-medium);
+  background-color: var(--background-tertiary);
+}
+
+.fileIcon {
+  flex: none;
+  color: var(--icon-themed);
+}
+
+.fileName {
+  @include mixins.detail;
+  @include mixins.ellipsis;
+
+  flex: 1;
+  min-width: 0;
+}
+
+.fileSize {
+  @include mixins.label;
+
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.fileError {
+  @include mixins.description;
+
+  margin: 0;
+  color: var(--text-negative);
+}
+
+// Поле выбора файла не показываем: диалог открывается из меню скрепки.
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 // Контейнер с заливкой — как Textarea в max-ui (режим secondary).

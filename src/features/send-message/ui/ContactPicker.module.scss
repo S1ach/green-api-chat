@@ -1,0 +1,79 @@
+@use '@/shared/styles/mixins';
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-size-xl);
+  min-height: 0;
+}
+
+.list {
+  @include mixins.thinScrollbar;
+
+  // Список прокручивается внутри окна; отрицательные поля выводят подсветку строки до его краёв.
+  min-height: 0;
+  margin: 0 calc(-1 * var(--spacing-size-xl));
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+// Строка контакта — та же ячейка CellSimple, что и в списке чатов.
+.item {
+  @include mixins.resetButton;
+
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-size-xl);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--spacing-size-m) var(--spacing-size-xl);
+  border-radius: var(--size-border-radius-paper);
+
+  @include mixins.hover {
+    background-color: var(--states-background-hovered-transparent);
+  }
+
+  &:active {
+    background-color: var(--states-background-pressed-transparent);
+  }
+
+  &:focus-visible {
+    outline-offset: -2px;
+  }
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  @include mixins.bodyStrong;
+  @include mixins.ellipsis;
+
+  color: var(--text-primary);
+}
+
+.phone {
+  @include mixins.description;
+  @include mixins.ellipsis;
+
+  color: var(--text-tertiary);
+}
+
+.notFound,
+.empty p {
+  @include mixins.detail;
+
+  margin: 0;
+  color: var(--text-tertiary);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-size-xl);
+}

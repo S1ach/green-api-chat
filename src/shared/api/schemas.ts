@@ -32,11 +32,33 @@ export type CheckAccountResponse = z.infer<typeof checkAccountSchema>;
 export const avatarSchema = z.object({ urlAvatar: z.string().nullish() });
 export type AvatarResponse = z.infer<typeof avatarSchema>;
 
+/** Ответ GetContactInfo — только ссылка на аватар. */
+export const contactInfoSchema = z.object({ avatar: z.string().nullish() });
+export type ContactInfoResponse = z.infer<typeof contactInfoSchema>;
+
 /** Ответ SendMessage. */
 export const sendMessageSchema = z.object({ idMessage: z.string() });
 export type SendMessageResponse = z.infer<typeof sendMessageSchema>;
 
-/** Ответы GetChats, GetChatHistory и журналов: элементы разбираются по одному, битые пропускаются. */
+/** Ответ SendFileByUpload: кроме idMessage приходит ссылка на загруженный файл. */
+export const sendFileSchema = z.object({ idMessage: z.string(), urlFile: z.string().nullish() });
+export type SendFileResponse = z.infer<typeof sendFileSchema>;
+
+/** Ответ GetAccountSettings — только chatId собственного чата («Избранное»). */
+export const accountSettingsSchema = z.object({
+  chatId: z.union([z.string(), z.number()]).nullish(),
+});
+export type AccountSettingsResponse = z.infer<typeof accountSettingsSchema>;
+
+/** Элемент ответа GetContacts. */
+export const remoteContactSchema = z.object({
+  chatId: z.string().min(1),
+  name: z.string().nullish(),
+  contactName: z.string().nullish(),
+  phoneNumber: z.number().nullish(),
+});
+
+/** Ответы GetChats, GetContacts, GetChatHistory и журналов: элементы разбираются по одному, битые пропускаются. */
 export const listSchema = z.array(z.unknown());
 
 /** Элемент ответа GetChats. */

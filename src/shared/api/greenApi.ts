@@ -3,18 +3,25 @@ import { devLog } from '@/shared/lib/devLog';
 import { baseQuery } from './baseQuery';
 import { unexpectedResponseError, type GreenApiError } from './errors';
 import {
+  accountSettingsSchema,
   avatarSchema,
   checkAccountSchema,
+  contactInfoSchema,
   listSchema,
   notificationSchema,
   remoteChatSchema,
+  remoteContactSchema,
+  sendFileSchema,
   sendMessageSchema,
   setSettingsSchema,
   settingsSchema,
   stateInstanceSchema,
+  type AccountSettingsResponse,
   type AvatarResponse,
   type CheckAccountResponse,
+  type ContactInfoResponse,
   type NotificationEnvelope,
+  type SendFileResponse,
   type SendMessageResponse,
   type SettingsResponse,
   type StateInstanceResponse,
@@ -26,13 +33,22 @@ import type {
   InstanceSettingsPatch,
   JournalRequest,
   RemoteChat,
+  RemoteContact,
+  SendContactRequest,
+  SendFileRequest,
+  SendLocationRequest,
   SendMessageRequest,
 } from './types';
 
-/** Ссылки на аватары живут недолго, но перезапрашивать их при каждом открытии чата незачем. */
-const AVATAR_CACHE_SECONDS = 600;
 /** Историю чата держим в кэше, чтобы возврат в недавно открытый чат обходился без запроса. */
 const HISTORY_CACHE_SECONDS = 300;
+/** chatId собственного чата у аккаунта не меняется — достаточно узнать его один раз за сессию. */
+const ACCOUNT_CACHE_SECONDS = 3600;
+
+/** Номер из GREEN-API: 0 означает, что он скрыт или его нет. */
+function toPhone(phoneNumber: number | null | undefined): string | null {
+  return typeof phoneNumber === 'number' && phoneNumber > 0 ? String(phoneNumber) : null;
+}
 
 function toRemoteChats(items: unknown[]): RemoteChat[] {
   const chats: RemoteChat[] = [];
@@ -41,16 +57,36 @@ function toRemoteChats(items: unknown[]): RemoteChat[] {
     if (!parsed.success) {
       continue;
     }
-    // phoneNumber = 0, если номер скрыт или это группа.
     const { chatId, name, type, phoneNumber } = parsed.data;
-    chats.push({
-      chatId,
-      name: name ?? '',
-      type: type ?? null,
-      phone: typeof phoneNumber === 'number' && phoneNumber > 0 ? String(phoneNumber) : null,
-    });
+    chats.push({ chatId, name: name ?? '', type: type ?? null, phone: toPhone(phoneNumber) });
   }
   return chats;
+}
+
+function toRemoteContacts(items: unknown[]): RemoteContact[] {
+  const contacts: RemoteContact[] = [];
+  for (const item of items) {
+    const parsed = remoteContactSchema.safeParse(item);
+    if (!parsed.success) {
+      continue;
+    }
+    // contactName — имя из записной книжки, name — из профиля MAX.
+    const { chatId, name, contactName, phoneNumber } = parsed.data;
+    contacts.push({ chatId, name: contactName || name || '', phone: toPhone(phoneNumber) });
+  }
+  return contacts;
+}
+
+/** Форма SendFileByUpload. Имя файла передаётся отдельным полем: так оно доходит в UTF-8. */
+export function buildFileForm({ chatId, file, caption }: SendFileRequest): FormData {
+  const form = new FormData();
+  form.append('chatId', chatId);
+  form.append('fileName', file.name);
+  if (caption !== '') {
+    form.append('caption', caption);
+  }
+  form.append('file', file, file.name);
+  return form;
 }
 
 /**
@@ -71,6 +107,18 @@ export const greenApi = createApi({
       query: (credentials) => ({ method: 'getStateInstance', credentials }),
       rawResponseSchema: stateInstanceSchema,
       keepUnusedDataFor: 0,
+    }),
+
+    /**
+     * GET getAccountSettings — chatId собственного чата аккаунта: это «Избранное»,
+     * сообщения самому себе. `null`, если API его не отдал.
+     */
+    getAccountSettings: build.query<string | null, void>({
+      query: () => ({ method: 'getAccountSettings' }),
+      rawResponseSchema: accountSettingsSchema,
+      transformResponse: ({ chatId }: AccountSettingsResponse) =>
+        chatId === null || chatId === undefined || chatId === '' ? null : String(chatId),
+      keepUnusedDataFor: ACCOUNT_CACHE_SECONDS,
     }),
 
     /** GET getSettings — поля, от которых зависит приём сообщений и статусов. */
@@ -107,6 +155,16 @@ export const greenApi = createApi({
       transformResponse: toRemoteChats,
     }),
 
+    /**
+     * GET getContacts — контакты аккаунта MAX. Только ими можно делиться через SendContact.
+     * Список обновляется на стороне GREEN-API с задержкой до 5 минут.
+     */
+    getContacts: build.query<RemoteContact[], void>({
+      query: () => ({ method: 'getContacts' }),
+      rawResponseSchema: listSchema,
+      transformResponse: toRemoteContacts,
+    }),
+
     /** POST checkAccount — есть ли номер в MAX и какой у него числовой chatId. */
     checkAccount: build.query<CheckAccountResponse, { phoneNumber: string }>({
       query: ({ phoneNumber }) => ({
@@ -117,12 +175,26 @@ export const greenApi = createApi({
       rawResponseSchema: checkAccountSchema,
     }),
 
-    /** POST getAvatar — ссылка на аватар или пустая строка. */
+    /**
+     * POST getAvatar — ссылка на аватар или пустая строка. На бесплатном тарифе у метода
+     * квота 100 запросов в месяц, поэтому ссылку хранит сам чат (`loadChatAvatar`).
+     */
     getAvatar: build.query<string, { chatId: string }>({
       query: ({ chatId }) => ({ method: 'getAvatar', httpMethod: 'POST', body: { chatId } }),
       rawResponseSchema: avatarSchema,
       transformResponse: (raw: AvatarResponse) => raw.urlAvatar ?? '',
-      keepUnusedDataFor: AVATAR_CACHE_SECONDS,
+      keepUnusedDataFor: 0,
+    }),
+
+    /**
+     * POST getContactInfo — запасной источник ссылки на аватар личного чата и бота,
+     * когда GetAvatar недоступен. С группами метод не работает.
+     */
+    getContactInfo: build.query<string, { chatId: string }>({
+      query: ({ chatId }) => ({ method: 'getContactInfo', httpMethod: 'POST', body: { chatId } }),
+      rawResponseSchema: contactInfoSchema,
+      transformResponse: (raw: ContactInfoResponse) => raw.avatar ?? '',
+      keepUnusedDataFor: 0,
     }),
 
     /**
@@ -167,6 +239,41 @@ export const greenApi = createApi({
     }),
 
     /**
+     * POST sendFileByUpload — файл с диска (до 100 МБ) формой multipart/form-data.
+     * Документация рекомендует для этого метода хост mediaUrl из личного кабинета.
+     * Тип сообщения (фото, видео, аудио, документ) MAX определяет сам по расширению файла.
+     */
+    sendFileByUpload: build.mutation<SendFileResponse, SendFileRequest>({
+      query: (request) => ({
+        method: 'sendFileByUpload',
+        httpMethod: 'POST',
+        host: 'media',
+        body: buildFileForm(request),
+      }),
+      rawResponseSchema: sendFileSchema,
+    }),
+
+    /** POST sendLocation — геопозиция по координатам. */
+    sendLocation: build.mutation<SendMessageResponse, SendLocationRequest>({
+      query: ({ chatId, latitude, longitude }) => ({
+        method: 'sendLocation',
+        httpMethod: 'POST',
+        body: { chatId, latitude, longitude },
+      }),
+      rawResponseSchema: sendMessageSchema,
+    }),
+
+    /** POST sendContact — поделиться контактом из списка контактов инстанса. */
+    sendContact: build.mutation<SendMessageResponse, SendContactRequest>({
+      query: ({ chatId, contactChatId }) => ({
+        method: 'sendContact',
+        httpMethod: 'POST',
+        body: { chatId, contact: { chatId: contactChatId } },
+      }),
+      rawResponseSchema: sendMessageSchema,
+    }),
+
+    /**
      * GET receiveNotification?receiveTimeout=N — следующее уведомление из очереди; `null` — очередь пуста.
      * Это mutation, а не query: ответ нельзя кэшировать, а дедупликация одинаковых
      * запросов помешала бы последовательному циклу опроса.
@@ -205,9 +312,10 @@ export const greenApi = createApi({
 });
 
 export const {
-  useGetAvatarQuery,
+  useGetAccountSettingsQuery,
   useGetChatHistoryQuery,
   useGetChatsQuery,
+  useGetContactsQuery,
   useGetSettingsQuery,
   useSetSettingsMutation,
 } = greenApi;

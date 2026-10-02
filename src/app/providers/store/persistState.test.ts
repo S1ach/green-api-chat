@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { chatOpened, chatSelected, selectChats } from '@/entities/chat';
+import { avatarChecked, chatOpened, chatSelected, selectChats } from '@/entities/chat';
 import { sessionEnded, sessionStarted } from '@/entities/session';
 import { loadPersistedState, persistState } from './persistState';
 import { createAppStore } from './store';
@@ -37,6 +37,16 @@ describe('persistState', () => {
     expect(selectChats(restored.getState()).map((chat) => chat.id)).toEqual(['10000000']);
     // Открытый чат не запоминается: после перезагрузки пользователь видит список.
     expect(restored.getState().chat.activeChatId).toBeNull();
+  });
+
+  it('ссылка на аватар переживает перезагрузку: заново его запрашивать не придётся', () => {
+    const store = startSession();
+    const avatar = { url: 'https://i.example/ivan.jpg', refreshAt: Date.now() + 1000 };
+    store.dispatch(avatarChecked({ chatId: '10000000', ...avatar }));
+
+    const restored = createAppStore(loadPersistedState());
+
+    expect(selectChats(restored.getState())[0]?.avatar).toEqual(avatar);
   });
 
   it('при выходе удаляет учётные данные, но не затирает кэш чатов пустым состоянием', () => {

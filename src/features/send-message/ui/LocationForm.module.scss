@@ -1,0 +1,25 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-size-xl);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  // Ошибка под одним полем не сдвигает второе.
+  align-items: start;
+  gap: var(--spacing-size-xl);
+}
+
+.locate {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-size-m);
+}
+
+.actions {
+  display: flex;
+  gap: var(--spacing-size-m);
+  margin-top: var(--spacing-size-m);
+}

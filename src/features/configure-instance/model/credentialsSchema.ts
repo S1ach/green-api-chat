@@ -8,6 +8,11 @@ export const credentialsSchema = z.object({
     .min(1, 'Укажите apiUrl')
     // Относительный путь нужен для dev-прокси: apiUrl = /green-api.
     .regex(/^(https?:\/\/|\/)/i, 'apiUrl должен начинаться с https:// или с /'),
+  // Хост для отправки файлов. В личном кабинете он указан рядом с apiUrl; можно не заполнять.
+  mediaUrl: z
+    .string()
+    .trim()
+    .regex(/^$|^(https?:\/\/|\/)/i, 'mediaUrl должен начинаться с https:// или с /'),
   idInstance: z
     .string()
     .trim()

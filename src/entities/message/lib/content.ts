@@ -1,4 +1,5 @@
-import { isRecord, readRecord, readString } from '@/shared/lib/guards';
+import { isRecord, readNumber, readRecord, readString } from '@/shared/lib/guards';
+import { formatPhone } from '@/shared/lib/phone';
 import type { Attachment, AttachmentKind, Message } from '../model/types';
 
 /** Содержимое сообщения: текст (или подпись) и вложение, если оно есть. */
@@ -18,6 +19,12 @@ const ATTACHMENT_KINDS: Record<string, AttachmentKind> = {
   contactMessage: 'contact',
   pollMessage: 'poll',
 };
+
+/** Вид вложения по MIME-типу файла — для сообщения, которое ещё отправляется. */
+export function attachmentKindOfFile(mimeType: string): AttachmentKind {
+  const [group] = mimeType.split('/');
+  return group === 'image' || group === 'video' || group === 'audio' ? group : 'document';
+}
 
 const ATTACHMENT_LABELS: Record<AttachmentKind, string> = {
   image: 'Фото',
@@ -43,15 +50,63 @@ export function previewText(message: Pick<Message, 'text' | 'attachment'>): stri
 }
 
 /** Ссылка приходит из сети и попадает в `href` — пропускаем только http(s). */
-function safeUrl(value: string | null): string | null {
-  return value !== null && /^https?:\/\//i.test(value) ? value : null;
+export function safeUrl(value: string | null | undefined): string | null {
+  return typeof value === 'string' && /^https?:\/\//i.test(value) ? value : null;
 }
 
-function attachmentFrom(typeMessage: string, file: Record<string, unknown> | null): Attachment {
+/** Геопозиция: координаты подписью и ссылка, по которой точка открывается на карте. */
+export function locationAttachment(latitude: number, longitude: number): Attachment {
+  return {
+    kind: 'location',
+    // У Яндекс Карт порядок обратный: сначала долгота.
+    url: `https://yandex.ru/maps/?pt=${longitude},${latitude}&z=16&l=map`,
+    name: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
+  };
+}
+
+/** Контакт: показываем имя — или номер, если имени нет. */
+export function contactAttachment(name: string | null): Attachment {
+  return { kind: 'contact', url: null, name: name || null };
+}
+
+/** locationMessageData: { latitude, longitude }. */
+function locationFrom(data: Record<string, unknown> | null): Attachment {
+  const latitude = data ? readNumber(data, 'latitude') : null;
+  const longitude = data ? readNumber(data, 'longitude') : null;
+  const isValid =
+    latitude !== null &&
+    longitude !== null &&
+    Math.abs(latitude) <= 90 &&
+    Math.abs(longitude) <= 180;
+  return isValid
+    ? locationAttachment(latitude, longitude)
+    : { kind: 'location', url: null, name: null };
+}
+
+/** contactMessageData: { displayName, phoneNumber, … }; номер 0 означает, что он скрыт. */
+function contactFrom(data: Record<string, unknown> | null): Attachment {
+  const phoneNumber = data ? readNumber(data, 'phoneNumber') : null;
+  const phone = phoneNumber !== null && phoneNumber > 0 ? formatPhone(String(phoneNumber)) : null;
+  return contactAttachment((data ? readString(data, 'displayName') : null) || phone);
+}
+
+function attachmentFrom(typeMessage: string, source: Record<string, unknown>): Attachment {
+  // В уведомлении данные файла вложены в fileMessageData, в истории лежат на верхнем уровне.
+  // Для геопозиции и контакта документация описывает только формат уведомления, поэтому
+  // в истории читаем те же объекты, если они пришли.
+  if (typeMessage === 'locationMessage') {
+    return locationFrom(
+      readRecord(source, 'locationMessageData') ?? readRecord(source, 'location'),
+    );
+  }
+  if (typeMessage === 'contactMessage') {
+    return contactFrom(readRecord(source, 'contactMessageData') ?? readRecord(source, 'contact'));
+  }
+  const file = readRecord(source, 'fileMessageData') ?? source;
   return {
     kind: ATTACHMENT_KINDS[typeMessage] ?? 'document',
-    url: safeUrl(file ? readString(file, 'downloadUrl') : null),
-    fileName: (file ? readString(file, 'fileName') : null) || null,
+    url: safeUrl(readString(file, 'downloadUrl')),
+    name: readString(file, 'fileName') || null,
   };
 }
 
@@ -60,7 +115,9 @@ function attachmentFrom(typeMessage: string, file: Record<string, unknown> | nul
  * - textMessage → textMessageData.textMessage;
  * - extendedTextMessage (текст со ссылкой), quotedMessage (ответ с цитатой) → extendedTextMessageData.text;
  * - image/video/audio/document/sticker → fileMessageData (downloadUrl, caption, fileName);
- * - location/contact/poll → вложение без файла.
+ * - location → locationMessageData (latitude, longitude);
+ * - contact → contactMessageData (displayName, phoneNumber);
+ * - poll → вложение без данных.
  * `null` — тип не является сообщением (реакция, правка, удаление) или данные повреждены.
  */
 export function contentFromNotification(messageData: unknown): MessageContent | null {
@@ -85,7 +142,7 @@ export function contentFromNotification(messageData: unknown): MessageContent | 
     const file = readRecord(data, 'fileMessageData');
     return {
       text: (file ? readString(file, 'caption') : null) ?? '',
-      attachment: attachmentFrom(typeMessage, file),
+      attachment: attachmentFrom(typeMessage, data),
     };
   }
   return null;

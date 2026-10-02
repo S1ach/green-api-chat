@@ -100,7 +100,7 @@ describe('normalizeHistory', () => {
 
     expect(image).toMatchObject({
       text: 'Описание',
-      attachment: { kind: 'image', url: 'https://storage.example/a.png', fileName: 'a.png' },
+      attachment: { kind: 'image', url: 'https://storage.example/a.png', name: 'a.png' },
     });
   });
 
@@ -231,16 +231,33 @@ describe('mergeMessages', () => {
 
   it('не теряет ссылку на вложение, если новый ответ пришёл без неё', () => {
     const withUrl = message('a', 1, {
-      attachment: { kind: 'image', url: 'https://storage.example/a.png', fileName: 'a.png' },
+      attachment: { kind: 'image', url: 'https://storage.example/a.png', name: 'a.png' },
     });
     const merged = mergeMessages(
       [withUrl],
-      [{ ...withUrl, text: 'подпись', attachment: { kind: 'image', url: null, fileName: null } }],
+      [{ ...withUrl, text: 'подпись', attachment: { kind: 'image', url: null, name: null } }],
     );
 
     expect(merged[0]).toMatchObject({
       text: 'подпись',
       attachment: { url: 'https://storage.example/a.png' },
+    });
+  });
+
+  it('не теряет подпись вложения (имя контакта), если история пришла без неё', () => {
+    const sent = message('a', 1, {
+      direction: 'outgoing',
+      status: 'sent',
+      attachment: { kind: 'contact', url: null, name: 'Люся Сидорова' },
+    });
+    const merged = mergeMessages(
+      [sent],
+      [{ ...sent, status: 'read', attachment: { kind: 'contact', url: null, name: null } }],
+    );
+
+    expect(merged[0]).toMatchObject({
+      status: 'read',
+      attachment: { kind: 'contact', name: 'Люся Сидорова' },
     });
   });
 

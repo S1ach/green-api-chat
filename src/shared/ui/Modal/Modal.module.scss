@@ -1,0 +1,52 @@
+@use '@/shared/styles/mixins';
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-size2xl);
+  background-color: var(--background-overlay);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 420px;
+  // Высокое содержимое (список контактов) прокручивается внутри окна.
+  max-height: min(640px, 100%);
+  border-radius: var(--size-border-radius-promo);
+  background-color: var(--background-card);
+  box-shadow: var(--shadow-floating);
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+.header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-size-xl);
+  padding: var(--spacing-size-xl) var(--spacing-size-xl) var(--spacing-size-m)
+    var(--spacing-size3xl);
+}
+
+.title {
+  @include mixins.title;
+  @include mixins.ellipsis;
+
+  margin: 0;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0 var(--spacing-size3xl) var(--spacing-size3xl);
+}

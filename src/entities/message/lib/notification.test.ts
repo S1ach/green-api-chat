@@ -78,9 +78,65 @@ describe('parseNotification: сообщения', () => {
         attachment: {
           kind: 'image',
           url: 'https://storage.example/photo.webp',
-          fileName: 'photo.webp',
+          name: 'photo.webp',
         },
       },
+    });
+  });
+
+  it('разбирает геопозицию: координаты и ссылка на карту', () => {
+    const parsed = parseNotification({
+      ...incomingText,
+      messageData: {
+        typeMessage: 'locationMessage',
+        locationMessageData: { latitude: 51.1035035, longitude: 71.3996933 },
+      },
+    });
+
+    expect(parsed).toMatchObject({
+      message: {
+        text: '',
+        attachment: {
+          kind: 'location',
+          url: 'https://yandex.ru/maps/?pt=71.3996933,51.1035035&z=16&l=map',
+          name: '51.10350, 71.39969',
+        },
+      },
+    });
+  });
+
+  it('геопозицию без координат показывает без ссылки', () => {
+    const parsed = parseNotification({
+      ...incomingText,
+      messageData: { typeMessage: 'locationMessage', locationMessageData: { latitude: 'x' } },
+    });
+
+    expect(parsed).toMatchObject({
+      message: { attachment: { kind: 'location', url: null, name: null } },
+    });
+  });
+
+  it('разбирает контакт: имя, а если его нет — номер', () => {
+    const named = parseNotification({
+      ...incomingText,
+      messageData: {
+        typeMessage: 'contactMessage',
+        contactMessageData: { chatId: '10000001', phoneNumber: 79991112233, displayName: 'Люся' },
+      },
+    });
+    const unnamed = parseNotification({
+      ...incomingText,
+      messageData: {
+        typeMessage: 'contactMessage',
+        contactMessageData: { chatId: '10000001', phoneNumber: 79991112233, displayName: '' },
+      },
+    });
+
+    expect(named).toMatchObject({
+      message: { text: '', attachment: { kind: 'contact', url: null, name: 'Люся' } },
+    });
+    expect(unnamed).toMatchObject({
+      message: { attachment: { kind: 'contact', name: '+7 (999) 111-22-33' } },
     });
   });
 

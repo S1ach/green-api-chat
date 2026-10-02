@@ -2,7 +2,7 @@ import type { Attachment, Message, MessageStatus } from '@/entities/message/@x/c
 import { isRecord, readNumber, readRecord, readString } from '@/shared/lib/guards';
 import { loadJson, saveJson } from '@/shared/lib/storage';
 import { initialChatState, type ChatState } from '../model/chatSlice';
-import type { Chat } from '../model/types';
+import type { Chat, ChatAvatarInfo } from '../model/types';
 
 /**
  * Кэш чатов в localStorage — отдельный на каждый инстанс. Источник истории — сервер
@@ -13,6 +13,12 @@ const KEY_PREFIX = 'greenapi.chats.v2.';
 /** Сколько последних сообщений чата сохраняем. */
 const HISTORY_LIMIT = 300;
 
+function parseAvatar(raw: Record<string, unknown> | null): ChatAvatarInfo | null {
+  const url = raw ? readString(raw, 'url') : null;
+  const refreshAt = raw ? readNumber(raw, 'refreshAt') : null;
+  return url === null || refreshAt === null ? null : { url, refreshAt };
+}
+
 function parseChat(raw: unknown): Chat | null {
   if (!isRecord(raw)) {
     return null;
@@ -21,6 +27,7 @@ function parseChat(raw: unknown): Chat | null {
   if (id === null) {
     return null;
   }
+  const avatar = parseAvatar(readRecord(raw, 'avatar'));
   return {
     id,
     phone: readString(raw, 'phone'),
@@ -29,6 +36,7 @@ function parseChat(raw: unknown): Chat | null {
     unreadCount: readNumber(raw, 'unreadCount') ?? 0,
     lastActivity: readNumber(raw, 'lastActivity') ?? Date.now(),
     lastPreview: readString(raw, 'lastPreview') ?? '',
+    ...(avatar !== null ? { avatar } : {}),
   };
 }
 
@@ -49,7 +57,9 @@ function parseAttachment(raw: Record<string, unknown> | null): Attachment | null
   if (raw === null || kind === undefined) {
     return null;
   }
-  return { kind, url: readString(raw, 'url'), fileName: readString(raw, 'fileName') };
+  // fileName — прежнее имя поля: записи, сохранённые до переименования, читаются как раньше.
+  const name = readString(raw, 'name') ?? readString(raw, 'fileName');
+  return { kind, url: readString(raw, 'url'), name };
 }
 
 function parseMessage(raw: unknown): Message | null {

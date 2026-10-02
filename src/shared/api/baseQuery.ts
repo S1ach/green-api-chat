@@ -15,7 +15,10 @@ export interface GreenApiRequest {
   /** Имя метода: `sendMessage`, `receiveNotification`… */
   method: string;
   httpMethod?: 'GET' | 'POST' | 'DELETE';
-  body?: Record<string, unknown>;
+  /** JSON-тело либо форма multipart/form-data (отправка файла). */
+  body?: Record<string, unknown> | FormData;
+  /** `media` — хост для отправки файлов (mediaUrl); по умолчанию apiUrl. */
+  host?: 'api' | 'media';
   /** Хвост URL после токена: `/{receiptId}` или `?receiveTimeout=5`. */
   tail?: string;
   /** Учётные данные для запроса до входа (getStateInstance); по умолчанию берутся из store. */
@@ -34,8 +37,10 @@ const NO_SESSION_ERROR: GreenApiError = {
   message: 'Нет активной сессии. Введите idInstance и apiTokenInstance.',
 };
 
-function buildUrl(credentials: Credentials, { method, tail = '' }: GreenApiRequest): string {
-  const base = credentials.apiUrl.trim().replace(/\/+$/, '');
+function buildUrl(credentials: Credentials, { method, host, tail = '' }: GreenApiRequest): string {
+  // mediaUrl необязателен: без него файлы уходят через apiUrl — метод доступен и там.
+  const hostUrl = (host === 'media' && credentials.mediaUrl) || credentials.apiUrl;
+  const base = hostUrl.trim().replace(/\/+$/, '');
   return `${base}/waInstance${credentials.idInstance}/${method}/${credentials.apiTokenInstance}${tail}`;
 }
 

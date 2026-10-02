@@ -31,13 +31,9 @@
   color: var(--text-tertiary);
 }
 
-.back {
-  display: none;
-  margin-left: calc(-1 * var(--spacing-size-m));
-
-  @media (max-width: 760px) {
-    display: grid;
-  }
+// Кнопка стоит вплотную к краю: её собственное поле заменяет отступ шапки.
+.close {
+  margin: 0 calc(-1 * var(--spacing-size-xs)) 0 calc(-1 * var(--spacing-size-m));
 }
 
 @keyframes spin {
