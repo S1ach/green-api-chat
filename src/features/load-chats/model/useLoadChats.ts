@@ -18,9 +18,9 @@ function sleep(ms: number): Promise<void> {
  * и на новом компьютере. Затем по очереди подгружаем последние сообщения каждого чата
  * для превью: строго последовательно и с паузой из-за лимитов частоты.
  */
-export function useLoadChats(): void {
+export function useLoadChats(): { isLoading: boolean } {
   const dispatch = useAppDispatch();
-  const { currentData: remoteChats, error } = useGetChatsQuery();
+  const { currentData: remoteChats, error, isLoading } = useGetChatsQuery();
 
   useEffect(() => {
     if (error !== undefined) {
@@ -65,4 +65,6 @@ export function useLoadChats(): void {
       cancelled = true;
     };
   }, [remoteChats, dispatch]);
+
+  return { isLoading };
 }

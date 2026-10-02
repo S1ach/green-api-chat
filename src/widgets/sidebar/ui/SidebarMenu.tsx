@@ -1,3 +1,5 @@
+import clsx from 'clsx';
+import { LogOut, Plus, UserPlus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import styles from './SidebarMenu.module.scss';
 
@@ -42,16 +44,14 @@ export function SidebarMenu({ onNewChat, onLogout }: Props) {
   return (
     <div className={styles.root} ref={rootRef}>
       <button
-        className={isOpen ? `${styles.trigger} ${styles.open}` : styles.trigger}
+        className={clsx(styles.trigger, isOpen && styles.open)}
         type="button"
         aria-label="Меню"
         aria-haspopup="menu"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((value) => !value)}
       >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
+        <Plus size={20} strokeWidth={2.4} aria-hidden="true" />
       </button>
 
       {isOpen && (
@@ -63,23 +63,18 @@ export function SidebarMenu({ onNewChat, onLogout }: Props) {
               role="menuitem"
               onClick={() => choose(onNewChat)}
             >
-              <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="9" cy="8" r="4" />
-                <path d="M2 21c0-3.9 3.1-7 7-7s7 3.1 7 7M19 8v6M16 11h6" />
-              </svg>
+              <UserPlus size={20} aria-hidden="true" />
               Новый чат
             </button>
           </li>
           <li role="none">
             <button
-              className={`${styles.item} ${styles.danger}`}
+              className={clsx(styles.item, styles.danger)}
               type="button"
               role="menuitem"
               onClick={() => choose(onLogout)}
             >
-              <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11" />
-              </svg>
+              <LogOut size={20} aria-hidden="true" />
               Выйти
             </button>
           </li>

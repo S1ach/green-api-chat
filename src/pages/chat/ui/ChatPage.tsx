@@ -1,67 +1,43 @@
-import { useState } from 'react';
-import { chatSelected, selectActiveChat, selectChats } from '@/entities/chat';
-import { selectCredentials } from '@/entities/session';
-import { disconnectInstance } from '@/features/configure-instance';
-import { NewChatForm } from '@/features/create-chat';
-import { useLoadChats } from '@/features/load-chats';
+import { MessageSquare } from 'lucide-react';
+import { selectActiveChat } from '@/entities/chat';
 import { useNotificationPolling, useSettingsWarning } from '@/features/receive-message';
-import { useAppDispatch, useAppSelector } from '@/shared/lib/store';
-import { ChatWindow } from '@/widgets/chat';
-import { ChatList, SidebarMenu } from '@/widgets/sidebar';
+import { useAppSelector } from '@/shared/lib/store';
+import { Alert } from '@/shared/ui';
+import { Chat } from '@/widgets/chat';
+import { Sidebar } from '@/widgets/sidebar';
 import styles from './ChatPage.module.scss';
 
 export function ChatPage() {
-  const dispatch = useAppDispatch();
-  const credentials = useAppSelector(selectCredentials);
-  const chats = useAppSelector(selectChats);
   const activeChat = useAppSelector(selectActiveChat);
-  const [isCreating, setIsCreating] = useState(false);
-
-  // Фоновая работа страницы: один цикл приёма уведомлений и загрузка списка чатов.
-  const { error: pollingError } = useNotificationPolling();
+  // Приём входящих живёт столько же, сколько страница: один цикл опроса на всю сессию.
+  const polling = useNotificationPolling();
   const settingsWarning = useSettingsWarning();
-  useLoadChats();
 
   return (
+    // На узком экране видно либо список чатов, либо переписку — см. data-view в стилях.
     <div className={styles.layout} data-view={activeChat === null ? 'list' : 'chat'}>
-      <aside className={styles.sidebar}>
-        <header className={styles.sidebarHeader}>
-          <div>
-            <h1 className={styles.brand}>Чаты</h1>
-            <p className={styles.instance}>Инстанс {credentials?.idInstance}</p>
-          </div>
-          <SidebarMenu
-            onNewChat={() => setIsCreating(true)}
-            onLogout={() => dispatch(disconnectInstance())}
-          />
-        </header>
-
-        {isCreating && <NewChatForm onClose={() => setIsCreating(false)} />}
-
-        <ChatList
-          chats={chats}
-          activeChatId={activeChat?.id ?? null}
-          onSelect={(chatId) => dispatch(chatSelected(chatId))}
-        />
-      </aside>
+      <div className={styles.sidebar}>
+        <Sidebar />
+      </div>
 
       <main className={styles.main}>
-        {pollingError !== null && (
-          <p className={styles.banner} role="status">
-            Приём сообщений прерван: {pollingError} Повторяем автоматически.
-          </p>
+        {polling.error !== null && (
+          <Alert tone="warning" className={styles.alert}>
+            Приём сообщений прерван. {polling.error} Повторяем автоматически.
+          </Alert>
         )}
         {settingsWarning !== null && (
-          <p className={styles.banner} role="status">
+          <Alert tone="warning" className={styles.alert}>
             Входящие сообщения не будут приходить: {settingsWarning}
-          </p>
+          </Alert>
         )}
         {activeChat === null ? (
           <div className={styles.placeholder}>
+            <MessageSquare size={40} strokeWidth={1.5} aria-hidden="true" />
             <p>Выберите чат слева или создайте новый по номеру телефона.</p>
           </div>
         ) : (
-          <ChatWindow chat={activeChat} onBack={() => dispatch(chatSelected(null))} />
+          <Chat chat={activeChat} />
         )}
       </main>
     </div>

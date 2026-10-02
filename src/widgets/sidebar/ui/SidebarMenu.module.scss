@@ -16,15 +16,6 @@
   transition: transform 0.15s ease;
 }
 
-.trigger svg {
-  width: 20px;
-  height: 20px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.4;
-  stroke-linecap: round;
-}
-
 /* Открытое меню: плюс поворачивается в крестик. */
 .open {
   transform: rotate(45deg);
@@ -63,17 +54,6 @@
 .item:focus-visible {
   background: var(--color-bg-muted);
   outline: none;
-}
-
-.icon {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .danger {

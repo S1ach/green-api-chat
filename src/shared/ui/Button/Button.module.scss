@@ -1,0 +1,30 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &[aria-busy='true'] {
+    cursor: progress;
+  }
+}
+
+.primary {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.secondary {
+  background: var(--color-bg);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}

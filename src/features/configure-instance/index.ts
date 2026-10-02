@@ -1,2 +1,2 @@
-export { connectInstance, disconnectInstance } from './model/connectInstance';
-export { LoginForm } from './ui/LoginForm';
+export { disconnectInstance } from './model/connectInstance';
+export { CredentialsForm } from './ui/CredentialsForm';

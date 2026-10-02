@@ -1,3 +1,4 @@
+import clsx from 'clsx';
 import { useState } from 'react';
 import { useGetAvatarQuery } from '@/shared/api';
 import type { Chat } from '../model/types';
@@ -26,7 +27,7 @@ export function ChatAvatar({ chat, size = 'md' }: Props) {
   // Ссылки на аватар живут недолго: запоминаем, какая именно перестала открываться.
   const [brokenUrl, setBrokenUrl] = useState<string | null>(null);
 
-  const className = size === 'sm' ? `${styles.avatar} ${styles.sm}` : styles.avatar;
+  const className = clsx(styles.avatar, size === 'sm' && styles.sm);
 
   if (url === '' || url === brokenUrl) {
     return (

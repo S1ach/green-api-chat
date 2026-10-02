@@ -2,6 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { fallbackChatId, formatPhone, normalizePhone, phoneFromChatId } from './phone';
 
 describe('normalizePhone', () => {
+  it.each([
+    '+79991234567',
+    '79991234567',
+    '89991234567',
+    '8 (999) 123-45-67',
+    '+7 999 123 45 67',
+    '  +7 (999) 123-45-67  ',
+  ])('приводит «%s» к формату GREEN-API', (input) => {
+    expect(normalizePhone(input)).toBe('79991234567');
+  });
+
   it('убирает форматирование и оставляет только цифры', () => {
     expect(normalizePhone('+7 (999) 123-45-67')).toBe('79991234567');
   });

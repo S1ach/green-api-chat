@@ -1,16 +1,24 @@
+import clsx from 'clsx';
 import { ChatAvatar, type Chat } from '@/entities/chat';
 import { formatListStamp } from '@/shared/lib/datetime';
+import { Loader } from '@/shared/ui';
 import styles from './ChatList.module.scss';
 
 interface Props {
   chats: Chat[];
   activeChatId: string | null;
+  /** Список чатов ещё загружается с сервера. */
+  isLoading: boolean;
   onSelect: (chatId: string) => void;
 }
 
-export function ChatList({ chats, activeChatId, onSelect }: Props) {
+export function ChatList({ chats, activeChatId, isLoading, onSelect }: Props) {
   if (chats.length === 0) {
-    return <p className={styles.empty}>Чатов пока нет. Создайте первый по номеру телефона.</p>;
+    return isLoading ? (
+      <Loader className={styles.empty} label="Загружаем чаты…" />
+    ) : (
+      <p className={styles.empty}>Чатов пока нет. Создайте первый по номеру телефона.</p>
+    );
   }
 
   return (
@@ -19,7 +27,8 @@ export function ChatList({ chats, activeChatId, onSelect }: Props) {
         <li key={chat.id}>
           <button
             type="button"
-            className={chat.id === activeChatId ? `${styles.item} ${styles.active}` : styles.item}
+            className={clsx(styles.item, chat.id === activeChatId && styles.active)}
+            aria-current={chat.id === activeChatId || undefined}
             onClick={() => onSelect(chat.id)}
           >
             <ChatAvatar chat={chat} />

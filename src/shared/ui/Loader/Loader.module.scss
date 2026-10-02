@@ -1,0 +1,29 @@
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.icon {
+  animation: spin 0.9s linear infinite;
+}
+
+.inline {
+  display: inline-flex;
+}
+
+.block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon {
+    animation-duration: 3s;
+  }
+}

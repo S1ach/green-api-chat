@@ -4,16 +4,14 @@
   background: var(--color-surface);
 }
 
+.error {
+  margin-bottom: 8px;
+}
+
 .row {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-}
-
-.error {
-  margin: 0 0 8px;
-  font-size: 13px;
-  color: var(--color-danger);
 }
 
 .input {
@@ -33,24 +31,23 @@
   }
 }
 
-.side {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .counter {
+  align-self: center;
   font-size: 12px;
   color: var(--color-text-muted);
 }
 
 .send {
-  padding: 10px 18px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  padding: 0;
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: 50%;
   background: var(--color-accent);
   color: #fff;
-  font-weight: 600;
 
   &:disabled {
     opacity: 0.45;

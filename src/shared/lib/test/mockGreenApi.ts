@@ -11,6 +11,8 @@ export interface RecordedCall {
   signal: AbortSignal;
   /** Ответ уже отдан; `false` — запрос «висит» в ожидании. */
   answered: boolean;
+  /** Завершает «висящий» запрос пустым ответом — как long polling по истечении таймаута. */
+  release: () => void;
 }
 
 function methodName(url: string): string {
@@ -19,8 +21,8 @@ function methodName(url: string): string {
 
 /**
  * Подмена fetch для тестов: ответы задаются очередью на каждый метод GREEN-API.
- * Если очередь метода пуста, запрос «висит», как long polling на пустой очереди,
- * и завершается только отменой — так видно, сколько запросов сейчас в полёте.
+ * Если очередь метода пуста, запрос «висит», как long polling на пустой очереди, пока его
+ * не отменят или не отпустят через `release` — так видно, сколько запросов сейчас в полёте.
  */
 export function mockGreenApi() {
   const replies = new Map<string, Reply[]>();
@@ -29,16 +31,22 @@ export function mockGreenApi() {
   const fetchMock = vi.fn((request: Request): Promise<Response> => {
     const method = methodName(request.url);
     const reply = replies.get(method)?.shift();
-    calls.push({
+    const call: RecordedCall = {
       method,
       url: request.url,
       httpMethod: request.method,
       signal: request.signal,
       answered: reply !== undefined,
-    });
+      release: () => undefined,
+    };
+    calls.push(call);
 
     if (reply === undefined) {
-      return new Promise((_resolve, reject) => {
+      return new Promise((resolve, reject) => {
+        call.release = () => {
+          call.answered = true;
+          resolve(new Response(''));
+        };
         request.signal.addEventListener('abort', () =>
           reject(new DOMException('Aborted', 'AbortError')),
         );

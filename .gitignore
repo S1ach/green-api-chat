@@ -1,11 +1,15 @@
 node_modules
 dist
 dist-ssr
+coverage
 *.local
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
+
+# Учётные данные GREEN-API вводятся в интерфейсе; env-файлы в репозиторий не попадают.
 .env
 .env.local
+.env.*.local
 
 *.tsbuildinfo
