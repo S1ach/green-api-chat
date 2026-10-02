@@ -73,9 +73,11 @@ export function ChatPage() {
         <ConnectionNotices />
         {activeChat === null ? (
           <div className={styles.placeholder}>
-            <MessageCircle size={48} strokeWidth={1.5} aria-hidden="true" />
-            <p className={styles.placeholderTitle}>Выберите чат</p>
-            <p>Или создайте новый по номеру телефона</p>
+            <div className={styles.placeholderCard}>
+              <MessageCircle size={48} strokeWidth={1.5} aria-hidden="true" />
+              <p className={styles.placeholderTitle}>Выберите чат</p>
+              <p>Или создайте новый по номеру телефона</p>
+            </div>
           </div>
         ) : (
           // key: у каждого чата своя прокрутка, свой черновик и своя глубина истории.

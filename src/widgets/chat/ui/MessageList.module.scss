@@ -37,6 +37,15 @@
   margin-bottom: var(--spacing-size-m);
 }
 
+// Подложка под текст, лежащий на узоре фона: загрузка, «показать более ранние».
+.chip {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-size-m);
+  border-radius: var(--border-radius-circle);
+  background-color: var(--chat-chip-background);
+}
+
 .day {
   display: flex;
   justify-content: center;
@@ -47,7 +56,7 @@
 
     padding: var(--spacing-size2xs) var(--spacing-size-l);
     border-radius: var(--border-radius-circle);
-    background-color: var(--background-tertiary);
+    background-color: var(--chat-chip-background);
     color: var(--text-secondary);
   }
 }
@@ -60,6 +69,8 @@
   gap: var(--spacing-size-xs);
   margin: auto;
   padding: var(--spacing-size4xl);
+  border-radius: var(--size-border-radius-promo);
+  background-color: var(--chat-chip-background);
   text-align: center;
 
   button {
@@ -106,7 +117,7 @@
 .boneOut {
   height: 36px;
   border-radius: var(--size-border-radius-card);
-  background-color: var(--background-tertiary);
+  background-color: var(--chat-chip-background);
   animation: shimmer 1.4s ease-in-out infinite;
 }
 

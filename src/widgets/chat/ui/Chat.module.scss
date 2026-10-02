@@ -6,7 +6,7 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  background-color: var(--background-surface);
+  // Фон переписки рисует страница: он общий для чата и для экрана «чат не выбран».
 }
 
 .alert {

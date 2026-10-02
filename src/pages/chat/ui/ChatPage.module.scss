@@ -13,11 +13,28 @@
   border-right: 1px solid var(--divider-secondary);
 }
 
+// Правая колонка целиком лежит на фоне переписки: цветная подложка и белый узор поверх неё.
+// Узор — отдельный слой, чтобы его заметность задавала тема.
 .main {
+  position: relative;
+  // Свой контекст наложения: слой с z-index -1 остаётся над подложкой, но под содержимым.
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  background-color: var(--chat-background);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: url('@/shared/assets/chat-background.svg') repeat;
+    background-size: 512px auto;
+    opacity: var(--chat-pattern-opacity);
+    pointer-events: none;
+  }
 }
 
 .notices {
@@ -34,15 +51,24 @@
 }
 
 .placeholder {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-size4xl);
+}
+
+// Текст на узоре читается плохо — подсказка лежит на карточке.
+.placeholderCard {
   @include mixins.detail;
 
   display: flex;
-  flex: 1;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: var(--spacing-size-xs);
   padding: var(--spacing-size4xl);
+  border-radius: var(--size-border-radius-promo);
+  background-color: var(--chat-chip-background);
   color: var(--text-tertiary);
   text-align: center;
 

@@ -80,11 +80,17 @@ export function MessageList({
         {!isEmpty && (
           <>
             <div className={styles.top}>
-              {isLoading && <Loader label="Загружаем сообщения…" />}
+              {isLoading && (
+                <div className={styles.chip}>
+                  <Loader label="Загружаем сообщения…" />
+                </div>
+              )}
               {!isLoading && hasMore && (
-                <Button variant="ghost" size="xsmall" onClick={onLoadMore}>
-                  Показать более ранние
-                </Button>
+                <div className={styles.chip}>
+                  <Button variant="ghost" size="xsmall" onClick={onLoadMore}>
+                    Показать более ранние
+                  </Button>
+                </div>
               )}
             </div>
             <ul className={styles.list}>

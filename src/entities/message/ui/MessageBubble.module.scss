@@ -25,6 +25,8 @@ $tail-radius: 6px;
   max-width: min(78%, 560px);
   padding: var(--spacing-size-m) var(--spacing-size-xl);
   border-radius: var(--size-border-radius-card);
+  // Лёгкая тень отделяет сообщение от узора фона.
+  box-shadow: 0 1px 1px rgb(0 0 0 / 0.1);
 
   .incoming & {
     background-color: var(--message-incoming);
@@ -91,7 +93,7 @@ $tail-radius: 6px;
 }
 
 .read {
-  color: var(--message-outgoing-text);
+  color: var(--message-outgoing-accent);
 }
 
 .attachment {
@@ -121,7 +123,8 @@ a.attachment .attachmentLabel {
   }
 
   .outgoing & {
-    background-color: rgb(255 255 255 / 0.2);
+    background-color: var(--message-outgoing-icon-background);
+    color: var(--message-outgoing-accent);
   }
 }
 
@@ -152,6 +155,10 @@ a.attachment .attachmentLabel {
   gap: var(--spacing-size-xs) var(--spacing-size-m);
   max-width: min(78%, 560px);
   margin: var(--spacing-size-xs) 0 0;
+  padding: var(--spacing-size-xs) var(--spacing-size-m);
+  border-radius: var(--size-border-radius-action-small);
+  // Строка лежит на фоне переписки — ей нужна своя подложка.
+  background-color: var(--chat-chip-background);
   color: var(--text-negative);
 
   button {
