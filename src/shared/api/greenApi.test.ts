@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { greenApi } from './greenApi';
+import { rateLimitReducer } from './rateLimitSlice';
 import type { Credentials } from './types';
 
 const credentials: Credentials = {
@@ -14,7 +15,11 @@ const BASE = 'https://api.green-api.com/waInstance1101000001';
 /** Минимальный store: baseQuery читает из него только учётные данные сессии. */
 function createStore(session: { credentials: Credentials | null } = { credentials }) {
   return configureStore({
-    reducer: { session: () => session, [greenApi.reducerPath]: greenApi.reducer },
+    reducer: {
+      session: () => session,
+      rateLimit: rateLimitReducer,
+      [greenApi.reducerPath]: greenApi.reducer,
+    },
     middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(greenApi.middleware),
   });
 }
@@ -209,16 +214,134 @@ describe('справочные методы', () => {
     expect(await lastRequest().json()).toEqual({ phoneNumber: 79991234567 });
   });
 
-  it('getSettings повторяет запрос после 429', async () => {
-    vi.useFakeTimers();
-    respond({ message: 'Too Many Requests' }, 429);
-    respond({ webhookUrl: '', incomingWebhook: 'yes' });
+  it('getSettings возвращает настройки приёма, setSettings меняет только переданные', async () => {
+    respond({ webhookUrl: '', incomingWebhook: 'no', outgoingWebhook: 'yes' });
     const store = createStore();
 
-    const pending = store.dispatch(greenApi.endpoints.getSettings.initiate()).unwrap();
-    await vi.advanceTimersByTimeAsync(5000);
+    const settings = await store.dispatch(greenApi.endpoints.getSettings.initiate()).unwrap();
+    expect(settings).toEqual({
+      webhookUrl: '',
+      incomingWebhook: 'no',
+      outgoingWebhook: 'yes',
+      outgoingMessageWebhook: '',
+    });
 
-    expect(await pending).toEqual({ webhookUrl: '', incomingWebhook: 'yes' });
+    respond({ saveSettings: true });
+    // Сохранение сбрасывает кэш настроек — приложение перечитывает их.
+    respond({ webhookUrl: '', incomingWebhook: 'yes' });
+    await store
+      .dispatch(greenApi.endpoints.setSettings.initiate({ incomingWebhook: 'yes' }))
+      .unwrap();
+
+    const request = fetchMock.mock.calls[1]?.[0];
+    expect(request?.url).toBe(`${BASE}/setSettings/test-token`);
+    expect(await request?.json()).toEqual({ incomingWebhook: 'yes' });
+  });
+
+  it('журналы запрашивают сообщения за указанное число минут', async () => {
+    respond([{ idMessage: '1' }]);
+    const store = createStore();
+
+    const journal = await store
+      .dispatch(greenApi.endpoints.lastIncomingMessages.initiate({ minutes: 10 }))
+      .unwrap();
+
+    expect(journal).toEqual([{ idMessage: '1' }]);
+    expect(lastRequest().url).toBe(`${BASE}/lastIncomingMessages/test-token?minutes=10`);
+  });
+});
+
+describe('ограничение частоты запросов', () => {
+  const history = { chatId: '10000000', count: 100 };
+  const rateLimitedUntil = (store: ReturnType<typeof createStore>) =>
+    store.getState().rateLimit.retryAt;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  it('после 429 ждёт и повторяет запрос, а вызывающий код ошибки не видит', async () => {
+    respond({ message: 'Too Many Requests' }, 429);
+    respond([{ idMessage: '1' }]);
+    const store = createStore();
+
+    const pending = store.dispatch(greenApi.endpoints.getChatHistory.initiate(history)).unwrap();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    // Интерфейс узнаёт, до какого момента ждать: показывает «повторим через N секунд».
+    expect(rateLimitedUntil(store)).toBeGreaterThan(Date.now());
+
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(await pending).toEqual([{ idMessage: '1' }]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('учитывает заголовок Retry-After', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response('{}', { status: 429, headers: { 'Retry-After': '7' } }),
+    );
+    respond([]);
+    const store = createStore();
+
+    const pending = store.dispatch(greenApi.endpoints.getChatHistory.initiate(history)).unwrap();
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(await pending).toEqual([]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('повторяет ограниченное число раз и затем отдаёт понятную ошибку', async () => {
+    fetchMock.mockImplementation(() => Promise.resolve(new Response('{}', { status: 429 })));
+    const store = createStore();
+
+    const pending = store.dispatch(greenApi.endpoints.getChatHistory.initiate(history));
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    expect((await pending).error).toMatchObject({ kind: 'rateLimit', status: 429 });
+    // Первый запрос и три повтора — не бесконечный цикл.
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it('не отправляет два запроса одного метода чаще лимита, кто бы их ни вызвал', async () => {
+    fetchMock.mockImplementation(() => Promise.resolve(new Response('[]')));
+    const store = createStore();
+
+    // Два разных чата — два разных запроса одного метода с лимитом 1 запрос в секунду.
+    const first = store.dispatch(greenApi.endpoints.getChatHistory.initiate(history));
+    const second = store.dispatch(
+      greenApi.endpoints.getChatHistory.initiate({ chatId: '20000000', count: 100 }),
+    );
+    await vi.advanceTimersByTimeAsync(500);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await Promise.all([first, second]);
+  });
+
+  it('одинаковые запросы объединяет в один', async () => {
+    fetchMock.mockImplementation(() => Promise.resolve(new Response('[]')));
+    const store = createStore();
+
+    await Promise.all([
+      store.dispatch(greenApi.endpoints.getChatHistory.initiate(history)),
+      store.dispatch(greenApi.endpoints.getChatHistory.initiate(history)),
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('опрос очереди при 429 не повторяет запрос сам: паузу выдерживает цикл опроса', async () => {
+    respond({}, 429);
+    const store = createStore();
+
+    const result = await store.dispatch(
+      greenApi.endpoints.receiveNotification.initiate({ receiveTimeout: 5 }),
+    );
+
+    expect(result.error).toMatchObject({ kind: 'rateLimit' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

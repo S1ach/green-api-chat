@@ -1,29 +1,12 @@
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+@use '@/shared/styles/mixins';
 
-.icon {
-  animation: spin 0.9s linear infinite;
-}
+.loader {
+  @include mixins.detail;
 
-.inline {
-  display: inline-flex;
-}
-
-.block {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--spacing-size-m);
   margin: 0;
-  font-size: 14px;
-  color: var(--color-text-muted);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .icon {
-    animation-duration: 3s;
-  }
+  color: var(--text-tertiary);
 }

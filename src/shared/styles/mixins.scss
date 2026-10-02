@@ -1,0 +1,89 @@
+// Типографика MAX (max-ui: src/styles/shared-mixins/typography.scss) и общие приёмы вёрстки.
+
+@mixin text($name, $weight: 400) {
+  font-size: var(--font-size-#{$name});
+  line-height: var(--line-height-#{$name});
+  font-weight: $weight;
+}
+
+@mixin header {
+  @include text(header, 600);
+}
+
+@mixin subheader {
+  @include text(subheader, 600);
+}
+
+@mixin title {
+  @include text(title, 600);
+}
+
+@mixin body {
+  @include text(body);
+}
+
+@mixin bodyStrong {
+  @include text(body, 500);
+}
+
+@mixin detail {
+  @include text(detail);
+}
+
+@mixin description {
+  @include text(description);
+}
+
+@mixin label {
+  @include text(label);
+}
+
+@mixin labelStrong {
+  @include text(label, 500);
+}
+
+@mixin tag {
+  @include text(tag);
+}
+
+@mixin resetButton {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@mixin resetTextField {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
+@mixin ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Подсветка при наведении только там, где есть мышь, — как в max-ui (Tappable).
+@mixin hover {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      @content;
+    }
+  }
+}
+
+@mixin thinScrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--icon-mute) transparent;
+}

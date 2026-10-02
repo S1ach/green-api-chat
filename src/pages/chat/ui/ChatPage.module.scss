@@ -1,13 +1,16 @@
+@use '@/shared/styles/mixins';
+
 .layout {
   display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   height: 100%;
-  background: var(--color-surface);
+  background-color: var(--background-surface);
 }
 
 .sidebar {
+  min-width: 0;
   min-height: 0;
-  border-right: 1px solid var(--color-border);
+  border-right: 1px solid var(--divider-secondary);
 }
 
 .main {
@@ -17,30 +20,59 @@
   min-height: 0;
 }
 
-.alert {
-  border-radius: 0;
+.notices {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--spacing-size-xs);
+
+  &:not(:empty) {
+    padding: var(--spacing-size-m) var(--spacing-size-xl);
+    border-bottom: 1px solid var(--divider-secondary);
+    background-color: var(--background-primary);
+  }
 }
 
 .placeholder {
+  @include mixins.detail;
+
   display: flex;
   flex: 1;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 24px;
-  color: var(--color-text-muted);
-  background: var(--color-bg-muted);
+  gap: var(--spacing-size-xs);
+  padding: var(--spacing-size4xl);
+  color: var(--text-tertiary);
   text-align: center;
+
+  svg {
+    margin-bottom: var(--spacing-size-m);
+    color: var(--icon-mute);
+  }
 
   p {
     margin: 0;
   }
 }
 
+.placeholderTitle {
+  @include mixins.bodyStrong;
+
+  color: var(--text-primary);
+}
+
+// Планшетная ширина: боковая панель уже, чтобы переписке хватало места.
+@media (max-width: 1100px) {
+  .layout {
+    --sidebar-width: 300px;
+  }
+}
+
+// Узкий экран: одна колонка.
 @media (max-width: 760px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .sidebar {

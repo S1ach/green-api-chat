@@ -1,0 +1,66 @@
+@use '@/shared/styles/mixins';
+
+// Ячейка списка — CellSimple из max-ui: 12px до аватара и между колонками, 4px между строками.
+.item {
+  @include mixins.resetButton;
+
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-size-xl);
+  width: 100%;
+  min-height: 64px;
+  padding: var(--spacing-size-m) var(--spacing-size-xl);
+  border-radius: var(--size-border-radius-paper);
+  transition: background-color 0.15s ease;
+
+  @include mixins.hover {
+    background-color: var(--states-background-hovered-transparent);
+  }
+
+  &:active {
+    background-color: var(--states-background-pressed-transparent);
+  }
+}
+
+.active,
+.active:hover,
+.active:active {
+  background-color: var(--button-secondary-contrast);
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--spacing-size-xs);
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-size-m);
+  min-width: 0;
+}
+
+.title {
+  @include mixins.bodyStrong;
+  @include mixins.ellipsis;
+
+  color: var(--text-primary);
+}
+
+.time {
+  @include mixins.label;
+
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.preview {
+  @include mixins.description;
+  @include mixins.ellipsis;
+
+  color: var(--text-tertiary);
+}

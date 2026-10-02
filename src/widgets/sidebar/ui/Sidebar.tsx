@@ -1,27 +1,34 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { chatSelected, selectActiveChat, selectChats } from '@/entities/chat';
 import { selectCredentials } from '@/entities/session';
 import { disconnectInstance } from '@/features/configure-instance';
 import { CreateChatForm } from '@/features/create-chat';
-import { useLoadChats } from '@/features/load-chats';
+import { ChatSearch, filterChats } from '@/features/search-chats';
+import { useChatSync } from '@/features/sync-chats';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/store';
 import { ChatList } from './ChatList';
 import { SidebarMenu } from './SidebarMenu';
 import styles from './Sidebar.module.scss';
 
-/** Боковая панель: подключённый инстанс, создание чата и список чатов. */
+/** Боковая панель: подключённый инстанс, поиск, создание чата и список чатов. */
 export function Sidebar() {
   const dispatch = useAppDispatch();
   const idInstance = useAppSelector((state) => selectCredentials(state)?.idInstance);
   const chats = useAppSelector(selectChats);
   const activeChatId = useAppSelector((state) => selectActiveChat(state)?.id ?? null);
   const [isCreating, setIsCreating] = useState(false);
-  const { isLoading } = useLoadChats();
+  // Поисковый запрос нужен только сайдбару — это локальное состояние, а не Redux.
+  const [query, setQuery] = useState('');
+  const { isLoading } = useChatSync();
+
+  const isSearching = query.trim() !== '';
+  // Стабильная ссылка: строки списка (memo) не перерисовываются при каждом обновлении панели.
+  const handleSelect = useCallback((chatId: string) => dispatch(chatSelected(chatId)), [dispatch]);
 
   return (
     <aside className={styles.sidebar}>
       <header className={styles.header}>
-        <div>
+        <div className={styles.heading}>
           <h1 className={styles.title}>Чаты</h1>
           <p className={styles.instance}>Инстанс {idInstance}</p>
         </div>
@@ -31,13 +38,21 @@ export function Sidebar() {
         />
       </header>
 
+      <ChatSearch value={query} onChange={setQuery} />
+
       {isCreating && <CreateChatForm onClose={() => setIsCreating(false)} />}
 
       <ChatList
-        chats={chats}
+        chats={filterChats(chats, query)}
         activeChatId={activeChatId}
-        isLoading={isLoading}
-        onSelect={(chatId) => dispatch(chatSelected(chatId))}
+        // Во время поиска пустой список — это «не найдено», а не «ещё загружается».
+        isLoading={isLoading && !isSearching}
+        emptyText={
+          isSearching
+            ? 'Ничего не найдено. Поиск идёт по имени и номеру телефона.'
+            : 'Чатов пока нет. Создайте первый по номеру телефона.'
+        }
+        onSelect={handleSelect}
       />
     </aside>
   );

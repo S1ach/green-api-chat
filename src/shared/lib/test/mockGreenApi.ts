@@ -11,8 +11,13 @@ export interface RecordedCall {
   signal: AbortSignal;
   /** Ответ уже отдан; `false` — запрос «висит» в ожидании. */
   answered: boolean;
-  /** Завершает «висящий» запрос пустым ответом — как long polling по истечении таймаута. */
-  release: () => void;
+  /** Тело запроса (JSON); появляется чуть позже самого вызова. */
+  body: unknown;
+  /**
+   * Завершает «висящий» запрос. Без аргумента — пустым ответом, как long polling
+   * по истечении таймаута; с аргументом — этим телом JSON (запоздавший ответ).
+   */
+  release: (body?: unknown) => void;
 }
 
 function methodName(url: string): string {
@@ -37,15 +42,23 @@ export function mockGreenApi() {
       httpMethod: request.method,
       signal: request.signal,
       answered: reply !== undefined,
+      body: undefined,
       release: () => undefined,
     };
     calls.push(call);
+    void request
+      .clone()
+      .json()
+      .then((body: unknown) => {
+        call.body = body;
+      })
+      .catch(() => undefined);
 
     if (reply === undefined) {
       return new Promise((resolve, reject) => {
-        call.release = () => {
+        call.release = (body) => {
           call.answered = true;
-          resolve(new Response(''));
+          resolve(new Response(body === undefined ? '' : JSON.stringify(body)));
         };
         request.signal.addEventListener('abort', () =>
           reject(new DOMException('Aborted', 'AbortError')),
@@ -82,6 +95,10 @@ export function mockGreenApi() {
     },
     methods(): string[] {
       return calls.map((call) => call.method);
+    },
+    /** Все вызовы одного метода по порядку. */
+    callsOf(method: string): RecordedCall[] {
+      return calls.filter((call) => call.method === method);
     },
   };
 }

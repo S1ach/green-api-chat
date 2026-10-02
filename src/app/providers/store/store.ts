@@ -1,11 +1,12 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { chatReducer } from '@/entities/chat';
 import { sessionEnded, sessionReducer } from '@/entities/session';
-import { greenApi } from '@/shared/api';
+import { greenApi, rateLimitReducer } from '@/shared/api';
 
 const appReducer = combineReducers({
   session: sessionReducer,
   chat: chatReducer,
+  rateLimit: rateLimitReducer,
   [greenApi.reducerPath]: greenApi.reducer,
 });
 

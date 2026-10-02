@@ -9,12 +9,17 @@ import { z } from 'zod';
 export const stateInstanceSchema = z.object({ stateInstance: z.string() });
 export type StateInstanceResponse = z.infer<typeof stateInstanceSchema>;
 
-/** Ответ GetSettings — только поля, влияющие на приём сообщений. */
+/** Ответ GetSettings — только поля, влияющие на приём сообщений и статусов. */
 export const settingsSchema = z.object({
   webhookUrl: z.string().nullish(),
   incomingWebhook: z.string().nullish(),
+  outgoingWebhook: z.string().nullish(),
+  outgoingMessageWebhook: z.string().nullish(),
 });
 export type SettingsResponse = z.infer<typeof settingsSchema>;
+
+/** Ответ SetSettings. */
+export const setSettingsSchema = z.object({ saveSettings: z.boolean() });
 
 /** Ответ CheckAccount: инстанс не готов либо результат проверки номера. */
 export const checkAccountSchema = z.union([
@@ -31,7 +36,7 @@ export type AvatarResponse = z.infer<typeof avatarSchema>;
 export const sendMessageSchema = z.object({ idMessage: z.string() });
 export type SendMessageResponse = z.infer<typeof sendMessageSchema>;
 
-/** Ответы GetChats и GetChatHistory: элементы разбираются по одному, битые пропускаются. */
+/** Ответы GetChats, GetChatHistory и журналов: элементы разбираются по одному, битые пропускаются. */
 export const listSchema = z.array(z.unknown());
 
 /** Элемент ответа GetChats. */

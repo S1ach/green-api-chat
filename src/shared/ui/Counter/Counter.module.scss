@@ -1,0 +1,16 @@
+@use '@/shared/styles/mixins';
+
+.counter {
+  @include mixins.labelStrong;
+
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  min-height: 20px;
+  padding: 1px var(--spacing-size-s);
+  border-radius: var(--border-radius-circle);
+  background-color: var(--counter-themed);
+  color: var(--text-primary-inverse-static);
+}

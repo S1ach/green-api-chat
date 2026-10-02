@@ -1,22 +1,18 @@
 import clsx from 'clsx';
-import { LoaderCircle } from 'lucide-react';
+import { Spinner } from '../Spinner/Spinner';
 import styles from './Loader.module.scss';
 
 interface Props {
-  /** Подпись рядом с индикатором; без неё индикатор декоративный (например, внутри кнопки). */
-  label?: string;
-  size?: number;
+  /** Что именно загружается — текст рядом с индикатором. */
+  label: string;
   className?: string;
 }
 
-export function Loader({ label, size = 18, className }: Props) {
-  const icon = <LoaderCircle className={styles.icon} size={size} aria-hidden="true" />;
-  if (label === undefined) {
-    return <span className={clsx(styles.inline, className)}>{icon}</span>;
-  }
+/** Состояние загрузки блока: индикатор с подписью. */
+export function Loader({ label, className }: Props) {
   return (
-    <p className={clsx(styles.block, className)} role="status">
-      {icon}
+    <p className={clsx(styles.loader, className)} role="status">
+      <Spinner size={18} appearance="themed" />
       {label}
     </p>
   );

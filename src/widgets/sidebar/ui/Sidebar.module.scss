@@ -1,26 +1,36 @@
+@use '@/shared/styles/mixins';
+
 .sidebar {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: var(--color-surface);
+  background-color: var(--background-primary);
 }
 
 .header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 16px 16px 10px;
+  gap: var(--spacing-size-xl);
+  padding: var(--spacing-size-xl) var(--spacing-size-xl) var(--spacing-size-xl)
+    var(--spacing-size2xl);
+}
+
+.heading {
+  min-width: 0;
 }
 
 .title {
+  @include mixins.subheader;
+
   margin: 0;
-  font-size: 20px;
 }
 
 .instance {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: var(--color-text-muted);
+  @include mixins.label;
+  @include mixins.ellipsis;
+
+  margin: 0;
+  color: var(--text-tertiary);
 }

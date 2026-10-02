@@ -1,46 +1,51 @@
+@use '@/shared/styles/mixins';
+
 .header {
   display: flex;
+  flex: none;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  gap: var(--spacing-size-xl);
+  min-height: 64px;
+  padding: var(--spacing-size-m) var(--spacing-size-xl) var(--spacing-size-m) var(--spacing-size2xl);
+  border-bottom: 1px solid var(--divider-secondary);
+  background-color: var(--background-primary);
 }
 
 .headline {
+  flex: 1;
   min-width: 0;
 }
 
 .title {
+  @include mixins.title;
+  @include mixins.ellipsis;
+
   margin: 0;
-  font-size: 16px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .subtitle {
+  @include mixins.description;
+  @include mixins.ellipsis;
+
   margin: 0;
-  font-size: 12px;
-  color: var(--color-text-muted);
+  color: var(--text-tertiary);
 }
 
 .back {
   display: none;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: none;
-  color: var(--color-text);
-
-  &:hover {
-    background: var(--color-bg-muted);
-  }
+  margin-left: calc(-1 * var(--spacing-size-m));
 
   @media (max-width: 760px) {
     display: grid;
   }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
 }

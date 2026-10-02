@@ -1,61 +1,56 @@
+@use '@/shared/styles/mixins';
+
 .root {
   position: relative;
-  flex-shrink: 0;
+  flex: none;
 }
 
-.trigger {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: var(--color-accent);
-  color: #ffffff;
+.plus {
   transition: transform 0.15s ease;
 }
 
-/* Открытое меню: плюс поворачивается в крестик. */
 .open {
   transform: rotate(45deg);
 }
 
+// Всплывающая поверхность: радиус floating и тень — как у Snackbar в max-ui.
 .menu {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + var(--spacing-size-m));
   right: 0;
   z-index: 10;
-  min-width: 200px;
+  min-width: 220px;
   margin: 0;
-  padding: 6px;
+  padding: var(--spacing-size-xs);
   list-style: none;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  box-shadow: 0 8px 24px rgba(23, 24, 28, 0.12);
+  border-radius: var(--size-border-radius-floating);
+  background-color: var(--background-card);
+  box-shadow: var(--shadow-floating);
 }
 
 .item {
+  @include mixins.resetButton;
+  @include mixins.body;
+
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--spacing-size-xl);
   width: 100%;
-  padding: 9px 12px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--color-text);
-  font-size: 14px;
-  text-align: left;
-}
+  min-height: 44px;
+  padding: var(--spacing-size-m) var(--spacing-size-xl);
+  border-radius: var(--size-border-radius-action-small);
+  color: var(--text-primary);
 
-.item:hover,
-.item:focus-visible {
-  background: var(--color-bg-muted);
-  outline: none;
+  @include mixins.hover {
+    background-color: var(--states-background-hovered-transparent);
+  }
+
+  &:focus-visible {
+    outline: none;
+    background-color: var(--states-background-pressed-transparent);
+  }
 }
 
 .danger {
-  color: var(--color-danger);
+  color: var(--text-negative);
 }

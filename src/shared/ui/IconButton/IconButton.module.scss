@@ -1,0 +1,67 @@
+@use '@/shared/styles/mixins';
+
+.button {
+  @include mixins.resetButton;
+
+  display: grid;
+  flex: none;
+  place-items: center;
+  border-radius: var(--border-radius-circle);
+  background-color: var(--button-background);
+  color: var(--button-foreground);
+  transition: background-color 0.15s ease;
+
+  @include mixins.hover {
+    &:not(:disabled) {
+      background-color: var(--button-background-hover);
+    }
+  }
+
+  &:active:not(:disabled) {
+    background-color: var(--button-background-pressed);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.xsmall {
+  width: 32px;
+  height: 32px;
+}
+
+.small {
+  width: 40px;
+  height: 40px;
+}
+
+.primary {
+  --button-background: var(--button-primary);
+  --button-background-hover: var(--states-button-primary-hover);
+  --button-background-pressed: var(--states-button-primary-pressed);
+  --button-foreground: var(--text-primary-inverse-static);
+
+  &:disabled {
+    --button-background: var(--states-button-primary-disabled);
+    --button-foreground: var(--states-text-primary-inverse-static-disabled);
+  }
+}
+
+.secondary {
+  --button-background: var(--button-secondary-contrast);
+  --button-background-hover: var(--states-button-secondary-contrast-hover);
+  --button-background-pressed: var(--states-button-secondary-contrast-pressed);
+  --button-foreground: var(--icon-primary);
+}
+
+.ghost {
+  --button-background: transparent;
+  --button-background-hover: var(--states-button-ghost-hover);
+  --button-background-pressed: var(--states-button-ghost-pressed);
+  --button-foreground: var(--icon-primary);
+
+  &:disabled {
+    --button-foreground: var(--icon-mute);
+  }
+}

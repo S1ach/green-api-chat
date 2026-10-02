@@ -1,6 +1,6 @@
 import { chatsRestored, loadChatCache } from '@/entities/chat';
 import { sessionEnded, sessionStarted } from '@/entities/session';
-import { getApiErrorMessage, greenApi, type Credentials } from '@/shared/api';
+import { getApiErrorMessage, greenApi, resetRateLimiter, type Credentials } from '@/shared/api';
 import type { AppThunk } from '@/shared/lib/store';
 import { stateHint } from './stateHints';
 
@@ -42,5 +42,6 @@ export function disconnectInstance(): AppThunk {
   return (dispatch) => {
     dispatch(sessionEnded());
     dispatch(greenApi.util.resetApiState());
+    resetRateLimiter();
   };
 }

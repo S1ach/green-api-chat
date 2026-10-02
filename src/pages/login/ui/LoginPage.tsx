@@ -5,14 +5,15 @@ export function LoginPage() {
   return (
     <main className={styles.screen}>
       <section className={styles.card}>
-        <h1 className={styles.title}>Вход в чат MAX</h1>
-        <p className={styles.hint}>
-          Данные инстанса можно посмотреть в личном кабинете{' '}
-          <a href="https://console.green-api.com" target="_blank" rel="noreferrer">
-            console.green-api.com
-          </a>
-          .
-        </p>
+        <header className={styles.header}>
+          <h1 className={styles.title}>Вход в чат MAX</h1>
+          <p className={styles.hint}>
+            Данные инстанса можно посмотреть в личном кабинете{' '}
+            <a href="https://console.green-api.com" target="_blank" rel="noreferrer">
+              console.green-api.com
+            </a>
+          </p>
+        </header>
 
         <CredentialsForm />
 

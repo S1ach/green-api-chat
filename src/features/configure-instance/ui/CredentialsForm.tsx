@@ -57,8 +57,8 @@ export function CredentialsForm() {
 
       {errors.root?.message !== undefined && <Alert>{errors.root.message}</Alert>}
 
-      <Button type="submit" isLoading={isSubmitting}>
-        {isSubmitting ? 'Проверяем…' : 'Войти'}
+      <Button type="submit" size="medium" stretched isLoading={isSubmitting}>
+        Войти
       </Button>
     </form>
   );

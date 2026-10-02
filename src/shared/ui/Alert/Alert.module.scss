@@ -1,23 +1,35 @@
+@use '@/shared/styles/mixins';
+
+// Нейтральная плашка с цветной иконкой: в MAX статус передаёт иконка, а не заливка.
 .alert {
+  @include mixins.description;
+
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
+  align-items: center;
+  gap: var(--spacing-size-m);
+  padding: var(--spacing-size-m) var(--spacing-size-xl);
+  border-radius: var(--size-border-radius-paper);
+  background-color: var(--background-secondary);
+  color: var(--text-secondary);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
 }
 
 .icon {
   flex: none;
-  margin-top: 2px;
 }
 
-.error {
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
+.error .icon {
+  color: var(--icon-negative);
 }
 
-.warning {
-  background: var(--color-warning-soft);
-  color: var(--color-warning);
+.warning .icon {
+  color: #ff832a;
+}
+
+.info .icon {
+  color: var(--icon-themed);
 }

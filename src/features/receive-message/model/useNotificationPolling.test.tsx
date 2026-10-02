@@ -65,6 +65,66 @@ describe('useNotificationPolling', () => {
     expect(selectChats(store.getState())).toEqual([]);
   });
 
+  it('показывает сообщение, отправленное с телефона, и обновляет его статус по уведомлению', async () => {
+    api.reply('receiveNotification', {
+      receiptId: 10,
+      body: { ...incomingText, typeWebhook: 'outgoingMessageReceived', idMessage: 'out-1' },
+    });
+    api.reply('deleteNotification', { result: true });
+    api.reply('receiveNotification', {
+      receiptId: 11,
+      body: {
+        typeWebhook: 'outgoingMessageStatus',
+        chatId: '10000000',
+        idMessage: 'out-1',
+        status: 'read',
+      },
+    });
+    api.reply('deleteNotification', { result: true });
+
+    const { store } = renderHookWithStore(() => useNotificationPolling());
+
+    await waitFor(() => expect(api.methods()).toHaveLength(5));
+    expect(selectMessages(store.getState(), '10000000')).toMatchObject([
+      { id: 'out-1', direction: 'outgoing', text: 'Привет!', status: 'read' },
+    ]);
+    // Своё сообщение непрочитанным не считается.
+    expect(selectChats(store.getState())[0]?.unreadCount).toBe(0);
+  });
+
+  it('показывает входящее сообщение с файлом вместо того, чтобы потерять его', async () => {
+    api.reply('receiveNotification', {
+      receiptId: 12,
+      body: {
+        ...incomingText,
+        messageData: {
+          typeMessage: 'imageMessage',
+          fileMessageData: { downloadUrl: 'https://storage.example/a.webp', caption: '' },
+        },
+      },
+    });
+    api.reply('deleteNotification', { result: true });
+
+    const { store } = renderHookWithStore(() => useNotificationPolling());
+
+    await waitFor(() => expect(api.methods()).toContain('deleteNotification'));
+    expect(selectChats(store.getState())[0]).toMatchObject({ lastPreview: 'Фото', unreadCount: 1 });
+  });
+
+  it('не превращает пустые ответы очереди в поток запросов', async () => {
+    vi.useFakeTimers();
+    // Сервер отвечает «пусто» мгновенно, не дожидаясь receiveTimeout.
+    for (let index = 0; index < 50; index += 1) {
+      api.reply('receiveNotification');
+    }
+
+    renderHookWithStore(() => useNotificationPolling());
+    await act(() => vi.advanceTimersByTimeAsync(3500));
+
+    // Не больше одного запроса в секунду вместо пятидесяти подряд.
+    expect(api.calls.length).toBeLessThanOrEqual(4);
+  });
+
   it('не дублирует сообщение, если уведомление доставлено повторно', async () => {
     api.reply('receiveNotification', { receiptId: 7, body: incomingText });
     api.reply('deleteNotification', { result: true });

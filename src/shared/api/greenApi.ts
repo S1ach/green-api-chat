@@ -1,7 +1,7 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { devLog } from '@/shared/lib/devLog';
 import { baseQuery } from './baseQuery';
-import { isGreenApiError, unexpectedResponseError, type GreenApiError } from './errors';
+import { unexpectedResponseError, type GreenApiError } from './errors';
 import {
   avatarSchema,
   checkAccountSchema,
@@ -9,6 +9,7 @@ import {
   notificationSchema,
   remoteChatSchema,
   sendMessageSchema,
+  setSettingsSchema,
   settingsSchema,
   stateInstanceSchema,
   type AvatarResponse,
@@ -22,30 +23,16 @@ import type {
   ChatHistoryRequest,
   Credentials,
   InstanceSettings,
+  InstanceSettingsPatch,
+  JournalRequest,
   RemoteChat,
   SendMessageRequest,
 } from './types';
 
-/** У GetSettings жёсткий лимит частоты: при 429 ждём и повторяем, а не сдаёмся. */
-const SETTINGS_RETRIES = 3;
-const SETTINGS_RETRY_MS = 5000;
-
 /** Ссылки на аватары живут недолго, но перезапрашивать их при каждом открытии чата незачем. */
 const AVATAR_CACHE_SECONDS = 600;
-
-function waitFor(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(resolve, ms);
-    signal?.addEventListener(
-      'abort',
-      () => {
-        clearTimeout(timer);
-        resolve();
-      },
-      { once: true },
-    );
-  });
-}
+/** Историю чата держим в кэше, чтобы возврат в недавно открытый чат обходился без запроса. */
+const HISTORY_CACHE_SECONDS = 300;
 
 function toRemoteChats(items: unknown[]): RemoteChat[] {
   const chats: RemoteChat[] = [];
@@ -73,6 +60,7 @@ function toRemoteChats(items: unknown[]): RemoteChat[] {
 export const greenApi = createApi({
   reducerPath: 'greenApi',
   baseQuery,
+  tagTypes: ['Settings'],
   catchSchemaFailure: (error, info) => {
     devLog('API', `${info.endpoint}: неожиданный формат ответа`, error.issues);
     return unexpectedResponseError();
@@ -85,24 +73,33 @@ export const greenApi = createApi({
       keepUnusedDataFor: 0,
     }),
 
-    /** GET getSettings — нужны только поля, влияющие на приём сообщений. */
+    /** GET getSettings — поля, от которых зависит приём сообщений и статусов. */
     getSettings: build.query<InstanceSettings, void>({
       query: () => ({ method: 'getSettings' }),
       rawResponseSchema: settingsSchema,
       transformResponse: (raw: SettingsResponse): InstanceSettings => ({
         webhookUrl: raw.webhookUrl ?? '',
         incomingWebhook: raw.incomingWebhook ?? '',
+        outgoingWebhook: raw.outgoingWebhook ?? '',
+        outgoingMessageWebhook: raw.outgoingMessageWebhook ?? '',
       }),
-      extraOptions: {
-        retryCondition: (error, _args, { attempt }) =>
-          isGreenApiError(error) && error.kind === 'rateLimit' && attempt <= SETTINGS_RETRIES,
-        backoff: (_attempt, _maxRetries, signal) => waitFor(SETTINGS_RETRY_MS, signal),
-      },
+      providesTags: ['Settings'],
+    }),
+
+    /**
+     * POST setSettings — меняет только переданные настройки. Инстанс после вызова
+     * перезапускается, настройки применяются в течение нескольких минут.
+     */
+    setSettings: build.mutation<null, InstanceSettingsPatch>({
+      query: (settings) => ({ method: 'setSettings', httpMethod: 'POST', body: { ...settings } }),
+      rawResponseSchema: setSettingsSchema,
+      transformResponse: () => null,
+      invalidatesTags: ['Settings'],
     }),
 
     /**
      * GET getChats — список чатов аккаунта MAX, тот же, что виден в консоли GREEN-API.
-     * Последнего сообщения и времени в ответе нет: их даёт GetChatHistory.
+     * Последнего сообщения и времени в ответе нет: их дают журналы сообщений.
      */
     getChats: build.query<RemoteChat[], void>({
       query: () => ({ method: 'getChats' }),
@@ -130,6 +127,7 @@ export const greenApi = createApi({
 
     /**
      * POST getChatHistory — «сырые» сообщения чата (новые сверху), разбор в `entities/message`.
+     * Смещения у метода нет: более ранние сообщения получают, увеличивая `count`.
      * MAX отдаёт не больше 5000 сообщений и не глубже 3 месяцев.
      */
     getChatHistory: build.query<unknown[], ChatHistoryRequest>({
@@ -139,8 +137,23 @@ export const greenApi = createApi({
         body: { chatId, count },
       }),
       rawResponseSchema: listSchema,
-      // Разобранные сообщения живут в слайсе чатов — копию ответа в кэше не держим.
-      keepUnusedDataFor: 0,
+      keepUnusedDataFor: HISTORY_CACHE_SECONDS,
+    }),
+
+    /**
+     * GET lastIncomingMessages?minutes=N — входящие сообщения всех чатов за последние N минут.
+     * Журналы, как и receiveNotification, объявлены mutation: это разовые чтения для сверки,
+     * кэшировать их незачем, а каждый вызов должен получить собственный ответ.
+     */
+    lastIncomingMessages: build.mutation<unknown[], JournalRequest>({
+      query: ({ minutes }) => ({ method: 'lastIncomingMessages', tail: `?minutes=${minutes}` }),
+      rawResponseSchema: listSchema,
+    }),
+
+    /** GET lastOutgoingMessages?minutes=N — исходящие сообщения всех чатов за последние N минут. */
+    lastOutgoingMessages: build.mutation<unknown[], JournalRequest>({
+      query: ({ minutes }) => ({ method: 'lastOutgoingMessages', tail: `?minutes=${minutes}` }),
+      rawResponseSchema: listSchema,
     }),
 
     /** POST sendMessage — отправка текста. */
@@ -162,6 +175,8 @@ export const greenApi = createApi({
       query: ({ receiveTimeout }) => ({
         method: 'receiveNotification',
         tail: `?receiveTimeout=${receiveTimeout}`,
+        // У цикла опроса своя пауза между попытками — повторы внутри запроса ему не нужны.
+        rateLimitRetries: 0,
       }),
       rawResponseSchema: notificationSchema,
       // По документации ReceiveNotification отвечает 400, когда у инстанса задан webhookUrl:
@@ -194,5 +209,5 @@ export const {
   useGetChatHistoryQuery,
   useGetChatsQuery,
   useGetSettingsQuery,
-  useSendMessageMutation,
+  useSetSettingsMutation,
 } = greenApi;

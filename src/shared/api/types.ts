@@ -18,6 +18,12 @@ export interface ChatHistoryRequest {
   count: number;
 }
 
+/** Параметры журналов LastIncomingMessages / LastOutgoingMessages. */
+export interface JournalRequest {
+  /** За сколько последних минут вернуть сообщения. */
+  minutes: number;
+}
+
 /** Элемент ответа GetChats, приведённый к удобному виду. */
 export interface RemoteChat {
   chatId: string;
@@ -35,7 +41,16 @@ export interface InstanceSettings {
   webhookUrl: string;
   /** "yes" — входящие сообщения попадают в очередь уведомлений. */
   incomingWebhook: string;
+  /** "yes" — приходят статусы отправленных сообщений (доставлено, прочитано). */
+  outgoingWebhook: string;
+  /** "yes" — приходят сообщения, отправленные с телефона и из других клиентов MAX. */
+  outgoingMessageWebhook: string;
 }
+
+/** Настройки для SetSettings: передаются выборочно, остальные не меняются. */
+export type InstanceSettingsPatch = Partial<
+  Record<'incomingWebhook' | 'outgoingWebhook' | 'outgoingMessageWebhook', 'yes' | 'no'>
+>;
 
 export interface InstanceData {
   idInstance: number;

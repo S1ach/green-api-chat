@@ -1,17 +1,15 @@
+// Карточка формы в боковой панели — «остров» на вторичном фоне, как CellList в max-ui.
 .form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px 16px 14px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg-muted);
+  gap: var(--spacing-size-xl);
+  margin: 0 var(--spacing-size-xl) var(--spacing-size-m);
+  padding: var(--spacing-size-xl);
+  border-radius: var(--size-border-radius-card);
+  background-color: var(--background-secondary);
 }
 
 .actions {
   display: flex;
-  gap: 8px;
-
-  > * {
-    flex: 1;
-  }
+  gap: var(--spacing-size-m);
 }

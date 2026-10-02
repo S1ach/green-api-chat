@@ -46,6 +46,7 @@ export function CreateChatForm({ onClose }: Props) {
     <form className={styles.form} onSubmit={(event) => void onSubmit(event)} noValidate>
       <TextField
         label="Номер телефона получателя"
+        size="medium"
         placeholder="+7 999 123-45-67"
         type="tel"
         inputMode="tel"
@@ -59,10 +60,10 @@ export function CreateChatForm({ onClose }: Props) {
       {warning !== null && <Alert tone="warning">{warning}</Alert>}
 
       <div className={styles.actions}>
-        <Button type="submit" isLoading={isSubmitting}>
-          {isSubmitting ? 'Проверяем…' : 'Создать чат'}
+        <Button type="submit" stretched isLoading={isSubmitting}>
+          Создать чат
         </Button>
-        <Button variant="secondary" onClick={onClose}>
+        <Button variant="secondary" stretched onClick={onClose}>
           Отмена
         </Button>
       </div>

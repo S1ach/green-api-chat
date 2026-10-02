@@ -1,30 +1,112 @@
+@use '@/shared/styles/mixins';
+
+// Варианты, размеры и состояния — по Button из max-ui.
 .button {
+  @include mixins.resetButton;
+
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
+  background-color: var(--button-background);
+  color: var(--button-foreground);
+  font-weight: 500;
+  text-align: center;
+  transition: background-color 0.15s ease;
+
+  @include mixins.hover {
+    &:not(:disabled) {
+      background-color: var(--button-background-hover);
+    }
+  }
+
+  &:active:not(:disabled) {
+    background-color: var(--button-background-pressed);
+  }
 
   &:disabled {
-    opacity: 0.6;
     cursor: not-allowed;
   }
+}
 
-  &[aria-busy='true'] {
-    cursor: progress;
-  }
+.xsmall {
+  height: 32px;
+  padding: 6px 12px;
+  border-radius: var(--size-border-radius-button-xsmall);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.small {
+  height: 40px;
+  padding: 10px 16px;
+  border-radius: var(--size-border-radius-button-small);
+  font-size: 1rem;
+  line-height: 1.25rem;
+}
+
+.medium {
+  height: 52px;
+  padding: 16px 20px;
+  border-radius: var(--size-border-radius-button-medium);
+  font-size: 1.0625rem;
+  line-height: 1.25rem;
 }
 
 .primary {
-  background: var(--color-accent);
-  color: #fff;
+  --button-background: var(--button-primary);
+  --button-background-hover: var(--states-button-primary-hover);
+  --button-background-pressed: var(--states-button-primary-pressed);
+  --button-foreground: var(--text-primary-inverse-static);
+
+  &:disabled {
+    --button-background: var(--states-button-primary-disabled);
+    --button-foreground: var(--states-text-primary-inverse-static-disabled);
+  }
 }
 
 .secondary {
-  background: var(--color-bg);
-  border-color: var(--color-border);
-  color: var(--color-text);
+  --button-background: var(--button-secondary-contrast);
+  --button-background-hover: var(--states-button-secondary-contrast-hover);
+  --button-background-pressed: var(--states-button-secondary-contrast-pressed);
+  --button-foreground: var(--text-primary);
+
+  &:disabled {
+    --button-foreground: var(--states-text-primary-disabled);
+  }
+}
+
+.ghost {
+  --button-background: transparent;
+  --button-background-hover: var(--states-button-ghost-hover);
+  --button-background-pressed: var(--states-button-ghost-pressed);
+  --button-foreground: var(--text-themed);
+
+  &:disabled {
+    --button-foreground: var(--states-text-primary-disabled);
+  }
+}
+
+.stretched {
+  width: 100%;
+}
+
+// Во время загрузки текст скрыт, но ширина кнопки не меняется.
+.loading {
+  cursor: wait;
+
+  .content {
+    visibility: hidden;
+  }
+
+  &.primary:disabled {
+    --button-background: var(--button-primary);
+    --button-foreground: var(--text-primary-inverse-static);
+  }
+}
+
+.spinner {
+  position: absolute;
+  inset: 0;
+  margin: auto;
 }

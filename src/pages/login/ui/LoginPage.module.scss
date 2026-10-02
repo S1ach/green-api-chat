@@ -1,31 +1,41 @@
+@use '@/shared/styles/mixins';
+
 .screen {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100%;
-  padding: 24px 16px;
+  height: 100%;
+  padding: var(--spacing-size4xl) var(--spacing-size2xl);
+  overflow-y: auto;
 }
 
 .card {
-  width: 100%;
-  max-width: 420px;
-  padding: 28px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 10px 40px rgb(23 24 28 / 6%);
+  gap: var(--spacing-size4xl);
+  width: 100%;
+  max-width: 420px;
+  margin: auto;
+  padding: var(--spacing-size4xl);
+  border-radius: var(--size-border-radius-promo);
+  background-color: var(--background-card);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-size-m);
 }
 
 .title {
+  @include mixins.header;
+
   margin: 0;
-  font-size: 22px;
 }
 
 .hint {
+  @include mixins.description;
+
   margin: 0;
-  font-size: 13px;
-  color: var(--color-text-muted);
+  color: var(--text-tertiary);
 }

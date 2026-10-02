@@ -1,42 +1,167 @@
+@use '@/shared/styles/mixins';
+
+$tail-radius: 6px;
+
 .message {
   display: flex;
+  flex-direction: column;
+  // Внутри серии сообщения стоят вплотную, между сериями — заметный отступ.
+  margin-bottom: var(--spacing-size2xs);
+}
+
+.groupEnd {
+  margin-bottom: var(--spacing-size-m);
 }
 
 .incoming {
-  justify-content: flex-start;
+  align-items: flex-start;
 }
 
 .outgoing {
-  justify-content: flex-end;
+  align-items: flex-end;
 }
 
 .bubble {
   max-width: min(78%, 560px);
-  padding: 8px 12px 6px;
-  border-radius: var(--radius-md);
-  box-shadow: 0 1px 2px rgb(23 24 28 / 6%);
+  padding: var(--spacing-size-m) var(--spacing-size-xl);
+  border-radius: var(--size-border-radius-card);
 
   .incoming & {
-    background: var(--color-bubble-in);
-    border-top-left-radius: 4px;
+    background-color: var(--message-incoming);
+    color: var(--text-primary);
   }
 
   .outgoing & {
-    background: var(--color-bubble-out);
-    border-top-right-radius: 4px;
+    background-color: var(--message-outgoing);
+    color: var(--message-outgoing-text);
+  }
+
+  // «Хвостик» — скруглённый меньше нижний угол у последнего сообщения серии.
+  .incoming.groupEnd & {
+    border-bottom-left-radius: $tail-radius;
+  }
+
+  .outgoing.groupEnd & {
+    border-bottom-right-radius: $tail-radius;
   }
 }
 
+.failed {
+  opacity: 0.6;
+}
+
 .text {
+  @include mixins.body;
+
   margin: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+  }
+
+  .incoming & a {
+    color: var(--text-themed);
+  }
 }
 
-.time {
-  display: block;
-  margin-top: 2px;
-  font-size: 11px;
-  text-align: right;
-  color: var(--color-text-muted);
+.meta {
+  @include mixins.tag;
+
+  float: right;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-size2xs);
+  margin: var(--spacing-size-xs) 0 -2px var(--spacing-size-xl);
+  white-space: nowrap;
+
+  .incoming & {
+    color: var(--text-tertiary);
+  }
+
+  .outgoing & {
+    color: var(--message-outgoing-meta);
+  }
+}
+
+.status {
+  display: inline-flex;
+}
+
+.read {
+  color: var(--message-outgoing-text);
+}
+
+.attachment {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-size-m);
+  margin-bottom: var(--spacing-size-xs);
+  color: inherit;
+  text-decoration: none;
+}
+
+a.attachment .attachmentLabel {
+  text-decoration: underline;
+}
+
+.attachmentIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-circle);
+
+  .incoming & {
+    background-color: var(--background-tertiary);
+    color: var(--icon-themed);
+  }
+
+  .outgoing & {
+    background-color: rgb(255 255 255 / 0.2);
+  }
+}
+
+.attachmentText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.attachmentLabel {
+  @include mixins.bodyStrong;
+}
+
+.attachmentName {
+  @include mixins.description;
+  @include mixins.ellipsis;
+
+  opacity: 0.72;
+}
+
+.error {
+  @include mixins.label;
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-size-xs) var(--spacing-size-m);
+  max-width: min(78%, 560px);
+  margin: var(--spacing-size-xs) 0 0;
+  color: var(--text-negative);
+
+  button {
+    @include mixins.resetButton;
+    @include mixins.labelStrong;
+
+    color: var(--text-themed);
+
+    @include mixins.hover {
+      text-decoration: underline;
+    }
+  }
 }

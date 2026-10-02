@@ -2,15 +2,17 @@ import clsx from 'clsx';
 import { forwardRef, useId, type InputHTMLAttributes } from 'react';
 import styles from './TextField.module.scss';
 
-interface Props extends InputHTMLAttributes<HTMLInputElement> {
+interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
   label: string;
   /** Текст ошибки валидации; показывается под полем. */
   error?: string;
+  /** Высота поля: 40 или 52 px — размеры Input в max-ui. */
+  size?: 'medium' | 'large';
 }
 
 /** Поле ввода с подписью и ошибкой. `ref` пробрасывается для `register` из React Hook Form. */
 export const TextField = forwardRef<HTMLInputElement, Props>(function TextField(
-  { label, error, id, className, ...rest },
+  { label, error, size = 'large', id, className, ...rest },
   ref,
 ) {
   const generatedId = useId();
@@ -25,7 +27,7 @@ export const TextField = forwardRef<HTMLInputElement, Props>(function TextField(
       <input
         ref={ref}
         id={inputId}
-        className={clsx(styles.input, error !== undefined && styles.invalid)}
+        className={clsx(styles.input, styles[size], error !== undefined && styles.invalid)}
         aria-invalid={error !== undefined || undefined}
         aria-describedby={error !== undefined ? errorId : undefined}
         {...rest}

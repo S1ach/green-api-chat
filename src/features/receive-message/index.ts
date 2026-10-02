@@ -1,2 +1,2 @@
 export { useNotificationPolling } from './model/useNotificationPolling';
-export { useSettingsWarning } from './model/useSettingsWarning';
+export { useReceivingSetup } from './model/useReceivingSetup';

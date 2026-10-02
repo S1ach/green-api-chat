@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import { LogOut, Plus, UserPlus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { IconButton } from '@/shared/ui';
 import styles from './SidebarMenu.module.scss';
 
 interface Props {
@@ -43,16 +44,21 @@ export function SidebarMenu({ onNewChat, onLogout }: Props) {
 
   return (
     <div className={styles.root} ref={rootRef}>
-      <button
-        className={clsx(styles.trigger, isOpen && styles.open)}
-        type="button"
+      <IconButton
+        variant="primary"
         aria-label="Меню"
         aria-haspopup="menu"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((value) => !value)}
       >
-        <Plus size={20} strokeWidth={2.4} aria-hidden="true" />
-      </button>
+        {/* Открытое меню: плюс поворачивается в крестик. */}
+        <Plus
+          className={clsx(styles.plus, isOpen && styles.open)}
+          size={22}
+          strokeWidth={2.4}
+          aria-hidden="true"
+        />
+      </IconButton>
 
       {isOpen && (
         <ul className={styles.menu} role="menu">

@@ -1,0 +1,22 @@
+@keyframes rotation {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  display: inline-block;
+  flex: none;
+  border-radius: 50%;
+  background: conic-gradient(currentcolor 0% 60%, transparent 60% 100%);
+  mask: radial-gradient(closest-side, transparent 78%, black 80%);
+  animation: rotation 1s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation-duration: 3s;
+  }
+}
+
+.themed {
+  color: var(--icon-themed);
+}

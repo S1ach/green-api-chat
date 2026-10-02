@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react';
-import { messageReceived } from '@/entities/chat';
-import { describeNotification, parseIncomingNotification } from '@/entities/message';
+import { messageReceived, messageStatusChanged } from '@/entities/chat';
+import { describeNotification, parseNotification } from '@/entities/message';
 import { selectCredentials } from '@/entities/session';
 import { getApiErrorMessage, greenApi } from '@/shared/api';
 import { devLog } from '@/shared/lib/devLog';
-import { useAppDispatch, useAppSelector } from '@/shared/lib/store';
+import { useAppDispatch, useAppSelector, type AppThunk } from '@/shared/lib/store';
 
 /** Сколько секунд сервер держит открытым запрос, если очередь пуста. */
 const RECEIVE_TIMEOUT_SECONDS = 5;
 const BASE_RETRY_MS = 1000;
 const MAX_RETRY_MS = 30_000;
+/**
+ * Минимальная длительность одного круга опроса. Обычно сервер сам держит запрос
+ * receiveTimeout секунд, но если он ответит «пусто» мгновенно, цикл не должен
+ * превратиться в поток запросов.
+ */
+const MIN_CYCLE_MS = 1000;
 
 export interface PollingState {
   /** Текст последней сетевой ошибки; `null`, когда опрос идёт нормально. */
@@ -20,6 +26,24 @@ export interface PollingState {
 interface Abortable<T> {
   abort: () => void;
   unwrap: () => Promise<T>;
+}
+
+/** Кладёт уведомление в состояние чатов: новое сообщение либо смена статуса отправленного. */
+function applyNotification(body: unknown): AppThunk {
+  return (dispatch, getState) => {
+    const parsed = parseNotification(body);
+    if (parsed === null) {
+      return;
+    }
+    if (parsed.kind === 'status') {
+      dispatch(messageStatusChanged(parsed));
+      return;
+    }
+    const before = getState().chat;
+    dispatch(messageReceived({ message: parsed.message, chat: parsed.chat }));
+    // Редьюсер не меняет состояние, если сообщение уже есть (пришло из истории или журнала).
+    devLog('ChatSync', getState().chat === before ? 'Duplicate ignored' : 'New message received');
+  };
 }
 
 function retryDelay(failures: number): number {
@@ -47,7 +71,7 @@ function wait(ms: number, signal: AbortSignal): Promise<void> {
  * - Цикл один: его запускает эффект, а cleanup останавливает — при размонтировании,
  *   выходе и смене учётных данных. Отменяется и уже отправленный запрос.
  * - Следующий запрос уходит только после обработки предыдущего.
- * - Каждое уведомление удаляется, даже нерелевантное (статусы, медиа), иначе очередь встанет.
+ * - Каждое уведомление удаляется, даже нерелевантное, иначе очередь встанет.
  * - При ошибках — пауза с экспоненциальным ростом от 1 до 30 секунд.
  */
 export function useNotificationPolling(): PollingState {
@@ -77,8 +101,8 @@ export function useNotificationPolling(): PollingState {
 
     const loop = async (): Promise<void> => {
       while (!signal.aborted) {
+        const startedAt = Date.now();
         try {
-          devLog('Polling', 'Waiting for notification...');
           const notification = await run(
             dispatch(
               greenApi.endpoints.receiveNotification.initiate(
@@ -90,20 +114,21 @@ export function useNotificationPolling(): PollingState {
           failures = 0;
           setError(null);
 
-          // Пустой ответ — очередь пуста, сервер уже подождал receiveTimeout: сразу идём на новый круг.
+          // Пустой ответ — очередь пуста: сервер уже подождал receiveTimeout, идём на новый круг.
           if (notification === null) {
+            const elapsed = Date.now() - startedAt;
+            if (elapsed < MIN_CYCLE_MS) {
+              await wait(MIN_CYCLE_MS - elapsed, signal);
+            }
             continue;
           }
-          devLog('Polling', 'Notification received', describeNotification(notification.body));
+          devLog('ChatSync', 'Notification received:', describeNotification(notification.body));
 
-          // Сначала обработка, потом удаление. Нетекстовые и служебные уведомления парсер
-          // превращает в `null`: в чат они не попадают, но из очереди удаляются. Если обработка
-          // упала — логируем и всё равно удаляем, иначе «битое» уведомление заблокирует очередь.
+          // Сначала обработка, потом удаление. Служебные уведомления парсер превращает
+          // в `null`: в чат они не попадают, но из очереди удаляются. Если обработка упала —
+          // логируем и всё равно удаляем, иначе «битое» уведомление заблокирует очередь.
           try {
-            const incoming = parseIncomingNotification(notification.body);
-            if (incoming !== null) {
-              dispatch(messageReceived(incoming));
-            }
+            dispatch(applyNotification(notification.body));
           } catch (handlerError) {
             console.error(
               `[Polling] Не удалось обработать уведомление receiptId=${notification.receiptId}`,
@@ -111,7 +136,6 @@ export function useNotificationPolling(): PollingState {
             );
           }
 
-          devLog('DeleteNotification', 'receiptId:', notification.receiptId);
           await run(
             dispatch(
               greenApi.endpoints.deleteNotification.initiate(

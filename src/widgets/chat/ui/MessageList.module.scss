@@ -1,24 +1,150 @@
-.scroll {
+@use '@/shared/styles/mixins';
+
+.wrapper {
+  position: relative;
+  display: flex;
   flex: 1;
-  overflow-y: auto;
-  padding: 16px 16px 8px;
-  background: var(--color-bg-muted);
+  flex-direction: column;
+  min-height: 0;
 }
 
-.empty {
-  margin: 32px auto;
-  max-width: 320px;
-  text-align: center;
-  color: var(--color-text-muted);
-  font-size: 14px;
+.scroll {
+  @include mixins.thinScrollbar;
+
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--spacing-size2xl) var(--spacing-size2xl) var(--spacing-size-m);
+  overflow-y: auto;
+  // Лента не «прыгает», когда меняется высота поля ввода или появляется плашка.
+  overflow-anchor: none;
 }
 
 .list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: 880px;
+  // Короткая переписка прижата к низу, как в мессенджерах.
+  margin: auto auto 0;
   padding: 0;
   list-style: none;
-  max-width: 760px;
+}
+
+.top {
+  display: flex;
+  justify-content: center;
+  min-height: 32px;
+  margin-bottom: var(--spacing-size-m);
+}
+
+.day {
+  display: flex;
+  justify-content: center;
+  margin: var(--spacing-size-m) 0 var(--spacing-size-xl);
+
+  span {
+    @include mixins.labelStrong;
+
+    padding: var(--spacing-size2xs) var(--spacing-size-l);
+    border-radius: var(--border-radius-circle);
+    background-color: var(--background-tertiary);
+    color: var(--text-secondary);
+  }
+}
+
+// Состояния пустой ленты: нет сообщений, ошибка загрузки.
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-size-xs);
+  margin: auto;
+  padding: var(--spacing-size4xl);
+  text-align: center;
+
+  button {
+    margin-top: var(--spacing-size-xl);
+  }
+}
+
+.stateIcon {
+  margin-bottom: var(--spacing-size-m);
+  color: var(--icon-mute);
+}
+
+.stateTitle {
+  @include mixins.bodyStrong;
+
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.stateText {
+  @include mixins.detail;
+
+  max-width: 360px;
+  margin: 0;
+  color: var(--text-tertiary);
+}
+
+@keyframes shimmer {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-size-m);
+  width: 100%;
+  max-width: 880px;
+  margin: auto auto 0;
+}
+
+.boneIn,
+.boneOut {
+  height: 36px;
+  border-radius: var(--size-border-radius-card);
+  background-color: var(--background-tertiary);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.boneIn {
+  align-self: flex-start;
+  width: min(46%, 320px);
+
+  &:nth-child(2) {
+    width: min(30%, 200px);
+  }
+}
+
+.boneOut {
+  align-self: flex-end;
+  width: min(38%, 260px);
+
+  &:last-child {
+    width: min(24%, 160px);
+  }
+}
+
+// Кнопка возврата к последним сообщениям — поверх ленты, над полем ввода.
+.jump {
+  position: absolute;
+  right: var(--spacing-size2xl);
+  bottom: var(--spacing-size-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.jumpButton {
+  background-color: var(--background-card);
+  box-shadow: var(--shadow-floating);
+}
+
+.jumpCounter {
+  position: relative;
+  z-index: 1;
+  margin-bottom: -8px;
 }

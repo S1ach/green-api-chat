@@ -1,8 +1,9 @@
-import { Send } from 'lucide-react';
-import { useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { ArrowUp } from 'lucide-react';
+import { useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { MAX_MESSAGE_LENGTH } from '@/shared/config';
-import { Alert, Loader } from '@/shared/ui';
-import { useSendMessage } from '../model/useSendMessage';
+import { useAppDispatch } from '@/shared/lib/store';
+import { IconButton } from '@/shared/ui';
+import { sendTextMessage } from '../model/sendMessage';
 import styles from './MessageInput.module.scss';
 
 interface Props {
@@ -11,55 +12,65 @@ interface Props {
 
 /** Показываем счётчик, когда до лимита остаётся меньше 200 символов. */
 const COUNTER_THRESHOLD = MAX_MESSAGE_LENGTH - 200;
+/** Поле растёт вместе с текстом до этой высоты, дальше появляется прокрутка. */
+const MAX_HEIGHT_PX = 160;
 
 /** Поле ввода сообщения: Enter отправляет, Shift+Enter переносит строку. */
 export function MessageInput({ chatId }: Props) {
+  const dispatch = useAppDispatch();
   // Черновик — локальное состояние компонента: больше он никому не нужен.
   const [text, setText] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const { send, isSending, error } = useSendMessage(chatId);
 
   const trimmed = text.trim();
-  const canSend = trimmed !== '' && !isSending;
+  const canSend = trimmed !== '';
 
-  const submit = async () => {
+  // Высота поля подстраивается под текст.
+  useLayoutEffect(() => {
+    const input = inputRef.current;
+    if (input !== null) {
+      input.style.height = 'auto';
+      input.style.height = `${Math.min(input.scrollHeight, MAX_HEIGHT_PX)}px`;
+    }
+  }, [text]);
+
+  const submit = () => {
     if (!canSend) {
       return;
     }
-    // Поле очищается только после подтверждения отправки: при ошибке текст остаётся для повтора.
-    if (await send(trimmed)) {
-      setText('');
-    }
+    // Поле очищается сразу, поэтому повторное нажатие не отправит то же сообщение ещё раз.
+    // Само сообщение уже в ленте: со статусом «отправляется», а при ошибке — с кнопкой повтора.
+    void dispatch(sendTextMessage(chatId, trimmed));
+    setText('');
     inputRef.current?.focus();
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    void submit();
+    submit();
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
+    // isComposing: Enter, которым подтверждают ввод в IME, сообщение не отправляет.
+    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
-      void submit();
+      submit();
     }
   };
 
   return (
-    <form className={styles.wrapper} onSubmit={handleSubmit}>
-      {error !== null && <Alert className={styles.error}>Сообщение не отправлено. {error}</Alert>}
-      <div className={styles.row}>
+    <form className={styles.form} onSubmit={handleSubmit}>
+      <div className={styles.field}>
         <textarea
           ref={inputRef}
           className={styles.input}
           value={text}
           onChange={(event) => setText(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Напишите сообщение…"
+          placeholder="Сообщение"
           aria-label="Текст сообщения"
           rows={1}
           maxLength={MAX_MESSAGE_LENGTH}
-          readOnly={isSending}
           autoFocus
         />
         {text.length > COUNTER_THRESHOLD && (
@@ -67,10 +78,10 @@ export function MessageInput({ chatId }: Props) {
             {text.length} / {MAX_MESSAGE_LENGTH}
           </span>
         )}
-        <button className={styles.send} type="submit" disabled={!canSend} aria-label="Отправить">
-          {isSending ? <Loader size={20} /> : <Send size={20} aria-hidden="true" />}
-        </button>
       </div>
+      <IconButton variant="primary" type="submit" disabled={!canSend} aria-label="Отправить">
+        <ArrowUp size={22} strokeWidth={2.4} aria-hidden="true" />
+      </IconButton>
     </form>
   );
 }

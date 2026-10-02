@@ -82,7 +82,8 @@ export function isGreenApiError(error: unknown): error is GreenApiError {
   );
 }
 
-function isAbortError(error: unknown): boolean {
+/** Запрос отменён самим приложением (выход, размонтирование) — это не сбой. */
+export function isAbortError(error: unknown): boolean {
   return (
     typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError'
   );

@@ -1,97 +1,172 @@
-import type { Message } from '../model/types';
 import { isSameChat } from '@/shared/lib/chatId';
-import { isRecord, readNumber, readRecord, readString } from '@/shared/lib/guards';
+import { isRecord, readNumber, readString } from '@/shared/lib/guards';
+import type { Message, MessageDirection, MessageStatus, ReceivedMessage } from '../model/types';
+import { contentFromHistory } from './content';
 
-/**
- * Текст сообщения из элемента GetChatHistory.
- * Текст лежит в `textMessage` (для textMessage и extendedTextMessage),
- * запасные места — `extendedTextMessage.text` и, для цитат, `extendedTextMessageData.text`.
- * Реакции, медиа, опросы и прочее — не текст, возвращаем null.
- */
-function extractHistoryText(item: Record<string, unknown>): string | null {
-  const typeMessage = readString(item, 'typeMessage');
-  if (
-    typeMessage !== 'textMessage' &&
-    typeMessage !== 'extendedTextMessage' &&
-    typeMessage !== 'quotedMessage'
-  ) {
-    return null;
-  }
-  const direct = readString(item, 'textMessage');
-  if (direct !== null && direct !== '') {
-    return direct;
-  }
-  const extended = readRecord(item, 'extendedTextMessage');
-  const fromExtended = extended ? readString(extended, 'text') : null;
-  if (fromExtended !== null && fromExtended !== '') {
-    return fromExtended;
-  }
-  const quoted = readRecord(item, 'extendedTextMessageData');
-  const fromQuoted = quoted ? readString(quoted, 'text') : null;
-  return fromQuoted !== null && fromQuoted !== '' ? fromQuoted : null;
+function readStatus(item: Record<string, unknown>): MessageStatus {
+  const status = readString(item, 'statusMessage');
+  return status === 'delivered' || status === 'read' ? status : 'sent';
 }
 
 /**
- * Переводит один элемент ответа GetChatHistory во внутренний формат.
- * `chatId` — идентификатор чата в приложении: им помечаем сообщение,
- * а сообщения чужих чатов отбрасываем.
+ * Переводит элемент GetChatHistory или журнала во внутренний формат.
+ * Запасные значения нужны, когда поле не пришло: в журналах направление задаёт
+ * сам метод, а в истории чат известен из запроса.
  */
-export function normalizeHistoryMessage(raw: unknown, chatId: string): Message | null {
+function normalizeItem(
+  raw: unknown,
+  fallback: { direction?: MessageDirection; chatId?: string },
+): Message | null {
   if (!isRecord(raw) || raw.isDeleted === true) {
     return null;
   }
   const type = readString(raw, 'type');
-  if (type !== 'incoming' && type !== 'outgoing') {
-    return null;
-  }
-  const idMessage = readString(raw, 'idMessage');
-  if (idMessage === null || idMessage === '') {
-    return null;
-  }
-  const rawChatId = readString(raw, 'chatId');
-  if (rawChatId !== null && !isSameChat(rawChatId, chatId)) {
-    return null;
-  }
-  const text = extractHistoryText(raw);
-  if (text === null) {
+  const direction = type === 'incoming' || type === 'outgoing' ? type : fallback.direction;
+  const id = readString(raw, 'idMessage');
+  const chatId = readString(raw, 'chatId') || fallback.chatId;
+  const content = contentFromHistory(raw);
+  if (direction === undefined || !id || !chatId || content === null) {
     return null;
   }
   const seconds = readNumber(raw, 'timestamp');
   return {
-    id: idMessage,
+    id,
     chatId,
-    direction: type,
-    text,
+    direction,
     timestamp: seconds !== null ? seconds * 1000 : 0,
+    ...content,
+    ...(direction === 'outgoing' ? { status: readStatus(raw) } : {}),
   };
 }
 
-/** Ответ GetChatHistory (новые сверху) → текстовые сообщения чата от старых к новым. */
+/**
+ * Ответ GetChatHistory (новые сверху) → сообщения чата от старых к новым.
+ * `chatId` — идентификатор чата в приложении: им помечаем сообщения,
+ * а сообщения чужих чатов отбрасываем.
+ */
 export function normalizeHistory(raw: unknown, chatId: string): Message[] {
   if (!Array.isArray(raw)) {
     return [];
   }
-  const messages = raw
-    .map((item) => normalizeHistoryMessage(item, chatId))
-    .filter((message): message is Message => message !== null);
-  return mergeMessages(messages, []);
+  const messages: Message[] = [];
+  for (const item of raw) {
+    const message = normalizeItem(item, { chatId });
+    if (message !== null && isSameChat(message.chatId, chatId)) {
+      messages.push({ ...message, chatId });
+    }
+  }
+  return mergeMessages([], messages);
 }
 
 /**
- * Объединяет историю из API и сообщения, накопленные в приложении
- * (входящие из ReceiveNotification, отправленные, кэш localStorage).
- * Дубли убираются по id (= idMessage GREEN-API); при совпадении
- * побеждает вторая коллекция.
- * Результат отсортирован от старых к новым; сортировка стабильная,
- * поэтому сообщения с одинаковым временем сохраняют порядок поступления.
+ * Ответ LastIncomingMessages / LastOutgoingMessages → сообщения разных чатов
+ * со сведениями о чате (имя собеседника есть только у входящих личных сообщений).
  */
-export function mergeMessages(historyMessages: Message[], realtimeMessages: Message[]): Message[] {
-  const byId = new Map<string, Message>();
-  for (const message of historyMessages) {
-    byId.set(message.id, message);
+export function normalizeJournal(raw: unknown, direction: MessageDirection): ReceivedMessage[] {
+  if (!Array.isArray(raw)) {
+    return [];
   }
-  for (const message of realtimeMessages) {
-    byId.set(message.id, message);
+  const received: ReceivedMessage[] = [];
+  for (const item of raw) {
+    const message = normalizeItem(item, { direction });
+    if (message === null || !isRecord(item)) {
+      continue;
+    }
+    const type = readString(item, 'chatType');
+    const isPersonalIncoming = message.direction === 'incoming' && type !== 'group';
+    received.push({
+      message,
+      chat: {
+        name: isPersonalIncoming
+          ? readString(item, 'senderContactName') || readString(item, 'senderName') || null
+          : null,
+        phone: null,
+        type,
+      },
+    });
   }
-  return [...byId.values()].sort((a, b) => a.timestamp - b.timestamp);
+  return received;
+}
+
+/** Статус только «растёт»: устаревший ответ истории не вернёт «прочитано» обратно в «отправлено». */
+const STATUS_RANK: Record<MessageStatus, number> = {
+  error: 0,
+  sending: 0,
+  sent: 1,
+  delivered: 2,
+  read: 3,
+};
+
+function laterStatus(a: MessageStatus | undefined, b: MessageStatus | undefined) {
+  if (a === undefined || b === undefined) {
+    return a ?? b;
+  }
+  return STATUS_RANK[b] > STATUS_RANK[a] ? b : a;
+}
+
+function isLocal(message: Message): boolean {
+  return message.status === 'sending' || message.status === 'error';
+}
+
+/**
+ * Порядок сообщений в ленте: по времени, а внутри одной секунды (GREEN-API отдаёт время
+ * в секундах) — по idMessage, у MAX он числовой и растёт. Ещё не отправленные сообщения
+ * всегда в конце: часы клиента могут отставать от серверных.
+ */
+export function compareMessages(a: Message, b: Message): number {
+  if (isLocal(a) !== isLocal(b)) {
+    return isLocal(a) ? 1 : -1;
+  }
+  if (a.timestamp !== b.timestamp) {
+    return a.timestamp - b.timestamp;
+  }
+  if (/^\d+$/.test(a.id) && /^\d+$/.test(b.id)) {
+    return a.id.length - b.id.length || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  }
+  return 0;
+}
+
+function sameContent(a: Message, b: Message): boolean {
+  return (
+    a.text === b.text &&
+    a.timestamp === b.timestamp &&
+    a.status === b.status &&
+    a.attachment?.url === b.attachment?.url
+  );
+}
+
+/**
+ * Добавляет к уже известным сообщениям чата полученные из API (история, журнал, уведомление).
+ * - Дубли убираются по id (= idMessage GREEN-API).
+ * - Для известного сообщения берутся свежие данные с сервера, а статус только повышается.
+ * - Старые сообщения не пропадают: история дополняет ленту, а не заменяет её.
+ * - Если ничего не изменилось, возвращается тот же массив — без лишних перерисовок.
+ */
+export function mergeMessages(current: Message[], incoming: Message[]): Message[] {
+  const byId = new Map(current.map((message) => [message.id, message]));
+  let changed = false;
+
+  for (const message of incoming) {
+    const known = byId.get(message.id);
+    if (known === undefined) {
+      byId.set(message.id, message);
+      changed = true;
+      continue;
+    }
+    const status = laterStatus(known.status, message.status);
+    const merged: Message = { ...known, ...message, ...(status ? { status } : {}) };
+    // Ссылку на файл отдают не все методы: уже известную не теряем.
+    if (merged.attachment && merged.attachment.url === null && known.attachment?.url) {
+      merged.attachment = { ...merged.attachment, ...known.attachment };
+    }
+    if (merged.status !== 'error') {
+      delete merged.error;
+    }
+    if (!sameContent(known, merged)) {
+      byId.set(message.id, merged);
+      changed = true;
+    }
+  }
+
+  return changed ? [...byId.values()].sort(compareMessages) : current;
 }
