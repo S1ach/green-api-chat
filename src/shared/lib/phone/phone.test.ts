@@ -29,6 +29,13 @@ describe('normalizePhone', () => {
     expect(normalizePhone('+375 29 123-45-67')).toBe('375291234567');
   });
 
+  it.each(['8 029 123-45-67', '8 (029) 123-45-67', '80291234567', '029 123-45-67'])(
+    'белорусский местный формат «%s» не превращает в российский номер',
+    (input) => {
+      expect(normalizePhone(input)).toBe('375291234567');
+    },
+  );
+
   it('возвращает null для пустой строки и некорректной длины', () => {
     expect(normalizePhone('')).toBeNull();
     expect(normalizePhone('   ')).toBeNull();

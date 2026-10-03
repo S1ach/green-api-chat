@@ -38,7 +38,7 @@ describe('CreateChatForm', () => {
 
     await user.type(phone, '12345');
     await user.click(submit);
-    expect(await screen.findByText(/Не удалось распознать номер/)).toBeInTheDocument();
+    expect(await screen.findByText(/России \(\+7\) и Беларуси \(\+375\)/)).toBeInTheDocument();
 
     expect(api.calls).toHaveLength(0);
     expect(onClose).not.toHaveBeenCalled();

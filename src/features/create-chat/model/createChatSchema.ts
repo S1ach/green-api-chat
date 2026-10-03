@@ -11,7 +11,8 @@ export const createChatSchema = z.object({
       if (phone === null) {
         context.addIssue({
           code: 'custom',
-          message: 'Не удалось распознать номер. Пример: +7 999 123-45-67',
+          message:
+            'Не удалось распознать номер. Поддерживаются номера России (+7) и Беларуси (+375), например +7 999 123-45-67.',
         });
         return z.NEVER;
       }

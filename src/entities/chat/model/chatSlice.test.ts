@@ -291,6 +291,117 @@ describe('chatSlice: список чатов из GetChats', () => {
   });
 });
 
+describe('chatSlice: чат на запасном chatId', () => {
+  const FALLBACK = '79123456789@c.us';
+  const PHONE = '79123456789';
+  const queued: Message = {
+    id: 'local-1',
+    chatId: FALLBACK,
+    direction: 'outgoing',
+    text: 'Привет',
+    timestamp: 1_700_000_000_000,
+    status: 'sending',
+  };
+  // эхо outgoingAPIMessageReceived: серверный chatId, номера получателя в нём нет
+  const echo: ReceivedMessage = {
+    message: { ...queued, id: 'BAE5', chatId: CHAT, status: 'sent' },
+    chat: { name: null, phone: null, type: 'user' },
+  };
+  const sending = chatReducer(openChat(FALLBACK, PHONE), messageQueued(queued));
+  const succeeded = messageSendSucceeded({
+    chatId: FALLBACK,
+    localId: 'local-1',
+    idMessage: 'BAE5',
+  });
+
+  const expectSingleChat = (state: ChatState) => {
+    expect(state.chatOrder).toEqual([CHAT]);
+    expect(Object.keys(state.chats)).toEqual([CHAT]);
+    expect(Object.keys(state.messages)).toEqual([CHAT]);
+    expect(state.activeChatId).toBe(CHAT);
+    expect(state.chats[CHAT]).toMatchObject({
+      id: CHAT,
+      phone: PHONE,
+      title: '+7 (912) 345-67-89',
+    });
+    expect(state.messages[CHAT]).toEqual([{ ...queued, id: 'BAE5', chatId: CHAT, status: 'sent' }]);
+  };
+
+  it('сначала ответ SendMessage, потом эхо: чат переезжает на серверный chatId', () => {
+    const state = chatReducer(chatReducer(sending, succeeded), messageReceived(echo));
+
+    expectSingleChat(state);
+  });
+
+  it('сначала эхо, потом ответ SendMessage: два чата сливаются в один', () => {
+    const withEcho = chatReducer(sending, messageReceived(echo));
+    expect(withEcho.chatOrder).toHaveLength(2);
+
+    expectSingleChat(chatReducer(withEcho, succeeded));
+  });
+
+  it('сверка по журналу переносит чат так же, как эхо из очереди', () => {
+    const state = chatReducer(
+      chatReducer(sending, succeeded),
+      messagesSynced({ received: [echo], countUnread: true }),
+    );
+
+    expectSingleChat(state);
+  });
+
+  it('ответ собеседника со скрытым номером попадает в тот же чат', () => {
+    const moved = chatReducer(chatReducer(sending, succeeded), messageReceived(echo));
+    const reply: ReceivedMessage = {
+      message: { ...incomingMessage('msg-1', 1_700_000_001_000, 'И тебе привет'), chatId: CHAT },
+      chat: { name: 'Иван', phone: null, type: 'user' },
+    };
+    const state = chatReducer(moved, messageReceived(reply));
+
+    expect(state.chatOrder).toEqual([CHAT]);
+    expect(ids(state)).toEqual(['BAE5', 'msg-1']);
+    expect(state.chats[CHAT]?.unreadCount).toBe(0);
+  });
+
+  it('ответ на запрос, отправленный до переноса, находит своё сообщение', () => {
+    const second: Message = { ...queued, id: 'local-2', text: 'Ещё одно' };
+    const moved = chatReducer(
+      chatReducer(chatReducer(sending, messageQueued(second)), succeeded),
+      messageReceived(echo),
+    );
+    const sent = chatReducer(
+      moved,
+      messageSendSucceeded({ chatId: FALLBACK, localId: 'local-2', idMessage: 'BAE6' }),
+    );
+    expect(sent.messages[CHAT]?.map(({ id, status }) => [id, status])).toEqual([
+      ['BAE5', 'sent'],
+      ['BAE6', 'sent'],
+    ]);
+
+    const failed = chatReducer(
+      moved,
+      messageSendFailed({ chatId: FALLBACK, localId: 'local-2', error: 'Нет сети' }),
+    );
+    expect(failed.messages[CHAT]?.[1]).toMatchObject({ status: 'error', error: 'Нет сети' });
+  });
+
+  it('статус сообщения с серверным chatId доходит до чата на запасном', () => {
+    const read = chatReducer(
+      chatReducer(sending, succeeded),
+      messageStatusChanged({ chatId: CHAT, idMessage: 'BAE5', status: 'read' }),
+    );
+
+    expect(read.messages[FALLBACK]?.[0]?.status).toBe('read');
+  });
+
+  it('при слиянии сохраняет имя, пришедшее с сервера', () => {
+    const named: ReceivedMessage = { ...echo, chat: { ...echo.chat, name: 'Иван' } };
+    const state = chatReducer(chatReducer(sending, messageReceived(named)), succeeded);
+
+    expect(state.chatOrder).toEqual([CHAT]);
+    expect(state.chats[CHAT]).toMatchObject({ title: 'Иван', phone: PHONE });
+  });
+});
+
 describe('chatSlice: отправка', () => {
   const queued: Message = {
     id: 'local-1',

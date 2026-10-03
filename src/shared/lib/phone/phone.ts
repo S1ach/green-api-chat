@@ -5,13 +5,7 @@ export function normalizePhone(input: string): string | null {
     return null;
   }
 
-  // 8 (999) 123-45-67 → 79991234567
-  const withCountryCode =
-    digits.length === 11 && digits.startsWith('8')
-      ? `7${digits.slice(1)}`
-      : digits.length === 10
-        ? `7${digits}`
-        : digits;
+  const withCountryCode = addCountryCode(digits);
 
   if (withCountryCode.length === 11 && withCountryCode.startsWith('7')) {
     return withCountryCode;
@@ -20,6 +14,27 @@ export function normalizePhone(input: string): string | null {
     return withCountryCode;
   }
   return null;
+}
+
+// местная запись без кода страны. Код оператора в Беларуси начинается с нуля,
+// в России и Казахстане — никогда, по нему и различаем
+function addCountryCode(digits: string): string {
+  // 8 029 123-45-67 → 375291234567
+  if (digits.length === 11 && digits.startsWith('80')) {
+    return `375${digits.slice(2)}`;
+  }
+  // 029 123-45-67 → 375291234567
+  if (digits.length === 10 && digits.startsWith('0')) {
+    return `375${digits.slice(1)}`;
+  }
+  // 8 (999) 123-45-67 → 79991234567
+  if (digits.length === 11 && digits.startsWith('8')) {
+    return `7${digits.slice(1)}`;
+  }
+  if (digits.length === 10) {
+    return `7${digits}`;
+  }
+  return digits;
 }
 
 export function formatPhone(phone: string): string {

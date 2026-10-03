@@ -77,8 +77,9 @@ export function ChatPage() {
             </div>
           </div>
         ) : (
-          // key: у каждого чата свой скролл, черновик и глубина истории
-          <Chat key={activeChat.id} chat={activeChat} />
+          // key: у каждого чата свой скролл, черновик и глубина истории.
+          // Номер, а не id: чат на запасном chatId может переехать на серверный
+          <Chat key={activeChat.phone ?? activeChat.id} chat={activeChat} />
         )}
       </main>
     </div>

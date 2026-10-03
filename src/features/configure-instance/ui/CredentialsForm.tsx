@@ -47,7 +47,7 @@ export function CredentialsForm() {
       />
       <TextField
         label="idInstance"
-        placeholder="1101000001"
+        placeholder="3100000001"
         inputMode="numeric"
         autoComplete="off"
         autoFocus

@@ -57,6 +57,24 @@ export function resolveChatId(
   return state.chatOrder.find((id) => state.chats[id]?.phone === knownPhone) ?? null;
 }
 
+// сервер может знать чат под другим chatId, чем тот, по которому его создали:
+// тогда общее сообщение — единственное, что их связывает
+function findChatByMessage(state: ChatState, messageId: string, except?: string): string | null {
+  return (
+    state.chatOrder.find(
+      (id) => id !== except && state.messages[id]?.some((message) => message.id === messageId),
+    ) ?? null
+  );
+}
+
+// пока шёл запрос, чат могли перенести на другой chatId
+function locateMessage(state: ChatState, chatId: string, messageId: string): string | null {
+  if (state.messages[chatId]?.some(({ id }) => id === messageId)) {
+    return chatId;
+  }
+  return findChatByMessage(state, messageId);
+}
+
 function sortChats(state: ChatState): void {
   const sorted = [...state.chatOrder].sort(
     (a, b) => (state.chats[b]?.lastActivity ?? 0) - (state.chats[a]?.lastActivity ?? 0),
@@ -78,11 +96,65 @@ function summarize(state: ChatState, chatId: string): void {
   sortChats(state);
 }
 
+// переносит чат на другой chatId; если такой чат уже есть — сливает их в один
+function moveChat(state: ChatState, fromId: string, toId: string): void {
+  const from = state.chats[fromId];
+  if (!from || fromId === toId) {
+    return;
+  }
+  const moved = (state.messages[fromId] ?? NO_MESSAGES).map((message) => ({
+    ...message,
+    chatId: toId,
+  }));
+  state.messages[toId] = mergeMessages(state.messages[toId] ?? NO_MESSAGES, moved);
+  delete state.messages[fromId];
+
+  const to = state.chats[toId];
+  if (to) {
+    // имя с сервера оставляем, а chatId вместо имени меняем на номер
+    if (to.title === titleFor(to.phone, toId)) {
+      to.title = from.title;
+    }
+    to.phone ??= from.phone;
+    to.unreadCount += from.unreadCount;
+    to.lastActivity = Math.max(to.lastActivity, from.lastActivity);
+    to.avatar ??= from.avatar;
+    state.chatOrder = state.chatOrder.filter((id) => id !== fromId);
+  } else {
+    state.chats[toId] = { ...from, id: toId };
+    state.chatOrder = state.chatOrder.map((id) => (id === fromId ? toId : id));
+  }
+  delete state.chats[fromId];
+
+  if (state.activeChatId === fromId) {
+    state.activeChatId = toId;
+  }
+  const merged = state.chats[toId];
+  if (merged && state.activeChatId === toId) {
+    merged.unreadCount = 0;
+  }
+  summarize(state, toId);
+}
+
+// эхо отправленного сообщения приходит с серверным chatId: чат, созданный по запасному
+// номер@c.us, узнаём по idMessage и переносим на серверный chatId
+function adoptServerChatId(state: ChatState, message: Message): string | null {
+  const holder = findChatByMessage(state, message.id);
+  if (holder === null) {
+    return null;
+  }
+  moveChat(state, holder, message.chatId);
+  return message.chatId;
+}
+
 // countUnread выключен при первой загрузке: непонятно, что пользователь уже видел
 function applyReceived(state: ChatState, received: ReceivedMessage, countUnread: boolean): void {
   const { message, chat: hint } = received;
   const phone = hint.phone ?? phoneFromChatId(message.chatId);
-  const chatId = resolveChatId(state, message.chatId, hint.phone) ?? message.chatId;
+  const chatId =
+    resolveChatId(state, message.chatId, hint.phone) ??
+    adoptServerChatId(state, message) ??
+    message.chatId;
 
   const known = state.messages[chatId] ?? NO_MESSAGES;
   const isNew = !known.some(({ id }) => id === message.id);
@@ -234,7 +306,8 @@ const chatSlice = createSlice({
       }>,
     ) {
       const { idMessage, status, error } = action.payload;
-      const chatId = resolveChatId(state, action.payload.chatId, null);
+      const chatId =
+        resolveChatId(state, action.payload.chatId, null) ?? findChatByMessage(state, idMessage);
       if (chatId === null) {
         return;
       }
@@ -276,10 +349,11 @@ const chatSlice = createSlice({
         fileUrl?: string | null;
       }>,
     ) {
-      const { chatId, localId, idMessage, fileUrl } = action.payload;
-      const list = state.messages[chatId];
+      const { localId, idMessage, fileUrl } = action.payload;
+      const chatId = locateMessage(state, action.payload.chatId, localId);
+      const list = chatId === null ? undefined : state.messages[chatId];
       const local = list?.find(({ id }) => id === localId);
-      if (list === undefined || local === undefined) {
+      if (chatId === null || list === undefined || local === undefined) {
         return;
       }
       const sent: Message = { ...local, id: idMessage, status: 'sent' };
@@ -292,14 +366,22 @@ const chatSlice = createSlice({
         list.some(({ id }) => id === idMessage) ? [] : [sent],
       );
       summarize(state, chatId);
+
+      // эхо пришло раньше ответа и уже завело чат под серверным chatId
+      const echoed = findChatByMessage(state, idMessage, chatId);
+      if (echoed !== null) {
+        moveChat(state, chatId, echoed);
+      }
     },
 
     messageSendFailed(
       state,
       action: PayloadAction<{ chatId: string; localId: string; error: string }>,
     ) {
-      const { chatId, localId, error } = action.payload;
-      const message = state.messages[chatId]?.find(({ id }) => id === localId);
+      const { localId, error } = action.payload;
+      const chatId = locateMessage(state, action.payload.chatId, localId);
+      const message =
+        chatId === null ? undefined : state.messages[chatId]?.find(({ id }) => id === localId);
       if (message) {
         message.status = 'error';
         message.error = error;
