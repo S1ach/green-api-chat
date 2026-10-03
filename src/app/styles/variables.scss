@@ -52,7 +52,8 @@
   --states-background-pressed-transparent: rgb(13 13 13 / 0.08);
 
   // фон переписки
-  --chat-background: var(--background-surface);
+  --chat-background: #d5e9c9;
+  --chat-pattern-opacity: 1;
   --chat-chip-background: rgb(255 255 255 / 0.9);
 
   --message-incoming: var(--background-primary);
@@ -115,7 +116,8 @@
   --states-background-hovered-transparent: rgb(232 232 232 / 0.04);
   --states-background-pressed-transparent: rgb(232 232 232 / 0.08);
 
-  --chat-background: var(--background-surface);
+  --chat-background: #111111;
+  --chat-pattern-opacity: 0.07;
   --chat-chip-background: rgb(37 38 45 / 0.9);
 
   --message-incoming: var(--background-secondary);

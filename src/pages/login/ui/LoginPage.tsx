@@ -6,7 +6,7 @@ export function LoginPage() {
     <main className={styles.screen}>
       <section className={styles.card}>
         <header className={styles.header}>
-          <h1 className={styles.title}>Вход в чат MAX</h1>
+          <h1 className={styles.title}>Вход в чат</h1>
           <p className={styles.hint}>
             Данные инстанса можно посмотреть в личном кабинете{' '}
             <a href="https://console.green-api.com" target="_blank" rel="noreferrer">

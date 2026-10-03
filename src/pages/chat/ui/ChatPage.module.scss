@@ -13,12 +13,27 @@
   border-right: 1px solid var(--divider-secondary);
 }
 
+// узор отдельным слоем, чтобы его заметность задавала тема
 .main {
+  position: relative;
+  // свой контекст наложения для слоя с z-index: -1
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
   background-color: var(--chat-background);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: url('@/shared/assets/chat-background.svg') repeat;
+    background-size: 512px auto;
+    opacity: var(--chat-pattern-opacity);
+    pointer-events: none;
+  }
 }
 
 .notices {
