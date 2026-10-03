@@ -13,11 +13,10 @@
   border-right: 1px solid var(--divider-secondary);
 }
 
-// Правая колонка целиком лежит на фоне переписки: цветная подложка и белый узор поверх неё.
-// Узор — отдельный слой, чтобы его заметность задавала тема.
+// узор отдельным слоем, чтобы его заметность задавала тема
 .main {
   position: relative;
-  // Свой контекст наложения: слой с z-index -1 остаётся над подложкой, но под содержимым.
+  // свой контекст наложения для слоя с z-index: -1
   isolation: isolate;
   display: flex;
   flex-direction: column;
@@ -58,7 +57,6 @@
   padding: var(--spacing-size4xl);
 }
 
-// Текст на узоре читается плохо — подсказка лежит на карточке.
 .placeholderCard {
   @include mixins.detail;
 
@@ -88,14 +86,12 @@
   color: var(--text-primary);
 }
 
-// Планшетная ширина: боковая панель уже, чтобы переписке хватало места.
 @media (max-width: 1100px) {
   .layout {
     --sidebar-width: 300px;
   }
 }
 
-// Узкий экран: одна колонка.
 @media (max-width: 760px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);

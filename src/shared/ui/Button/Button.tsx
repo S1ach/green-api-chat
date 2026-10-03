@@ -5,11 +5,8 @@ import styles from './Button.module.scss';
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost';
-  /** Высота 32, 40 или 52 px — размеры кнопок max-ui. */
   size?: 'xsmall' | 'small' | 'medium';
-  /** Растянуть на всю ширину контейнера. */
   stretched?: boolean;
-  /** Запрос выполняется: кнопка недоступна, вместо текста — индикатор. */
   isLoading?: boolean;
 }
 

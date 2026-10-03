@@ -2,10 +2,6 @@ import { useEffect, useState } from 'react';
 import { useAppSelector } from '@/shared/lib/store';
 import { selectRetryAt } from './rateLimitSlice';
 
-/**
- * Сколько секунд осталось до повтора запроса после 429; `null` — ограничения сейчас нет.
- * Значение обновляется раз в полсекунды и само сбрасывается, когда ожидание закончилось.
- */
 export function useRateLimitCountdown(): number | null {
   const retryAt = useAppSelector(selectRetryAt);
   const [now, setNow] = useState(() => Date.now());

@@ -33,7 +33,7 @@ function props(overrides: Partial<Props> = {}): Props {
   };
 }
 
-/** jsdom не считает размеры — задаём их вручную: лента высотой 200px. */
+// jsdom не считает размеры, задаём руками: лента высотой 200px
 function mockScrollHeight(list: HTMLElement, scrollHeight: number) {
   Object.defineProperty(list, 'scrollHeight', { configurable: true, value: scrollHeight });
   Object.defineProperty(list, 'clientHeight', { configurable: true, value: 200 });
@@ -100,7 +100,6 @@ describe('MessageList: прокрутка', () => {
       mockScrollHeight(list, scrollHeight);
       rerender(<MessageList {...props({ messages })} />);
     };
-    /** Пользователь прокрутил ленту вверх — читает историю. */
     const scrollUp = () => {
       list.scrollTop = 100;
       fireEvent.scroll(list);

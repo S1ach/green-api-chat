@@ -10,10 +10,7 @@ const appReducer = combineReducers({
   [greenApi.reducerPath]: greenApi.reducer,
 });
 
-/**
- * Выход из инстанса сбрасывает всё состояние одним экшеном: чаты, сообщения и кэш запросов.
- * Так данные одного инстанса не могут остаться в памяти после входа в другой.
- */
+// выход сбрасывает весь стор разом: чаты, сообщения, кэш запросов
 const rootReducer: typeof appReducer = (state, action) =>
   appReducer(sessionEnded.match(action) ? undefined : state, action);
 
@@ -27,10 +24,7 @@ export function createAppStore(preloadedState?: Partial<RootState>) {
 
 export type AppStore = ReturnType<typeof createAppStore>;
 
-/**
- * Типы store объявлены глобально, чтобы нижние слои (shared/lib/store, shared/api)
- * пользовались ими без импорта из app — зависимости в FSD идут только сверху вниз.
- */
+// типы стора глобальные, чтобы shared не импортировал из app
 declare global {
   type RootState = ReturnType<typeof appReducer>;
   type AppDispatch = AppStore['dispatch'];

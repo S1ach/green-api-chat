@@ -12,20 +12,15 @@ interface Props {
   children: ReactNode;
 }
 
-/**
- * Модальное окно поверх приложения. Закрывается крестиком, клавишей Escape и кликом по фону.
- * Фокус при открытии переходит в окно и не покидает его, а после закрытия возвращается назад.
- */
 export function Modal({ title, onClose, children }: Props) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
-  // Запоминаем при первом рендере — до того, как фокус перейдёт в окно.
+  // запоминаем до того, как фокус уйдёт в окно
   const [previousFocus] = useState(() => document.activeElement);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (dialog !== null && !dialog.contains(document.activeElement)) {
-      // Первым делом — в поле ввода, если оно есть: окно открывают, чтобы что-то ввести.
       (dialog.querySelector<HTMLElement>('input, textarea') ?? dialog).focus();
     }
     return () => {
@@ -44,7 +39,7 @@ export function Modal({ title, onClose, children }: Props) {
     if (event.key !== 'Tab') {
       return;
     }
-    // Tab ходит по кругу внутри окна.
+    // Tab ходит по кругу внутри окна
     const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [];
     const first = focusable[0];
     const last = focusable[focusable.length - 1];

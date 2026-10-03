@@ -2,21 +2,13 @@ import { vi } from 'vitest';
 
 type Reply = { status?: number; body?: unknown } | Error;
 
-/** Запрос к GREEN-API, увиденный подменённым fetch. */
 export interface RecordedCall {
-  /** Имя метода из URL: `sendMessage`, `receiveNotification`… */
   method: string;
   url: string;
   httpMethod: string;
   signal: AbortSignal;
-  /** Ответ уже отдан; `false` — запрос «висит» в ожидании. */
   answered: boolean;
-  /** Тело запроса (JSON); появляется чуть позже самого вызова. */
   body: unknown;
-  /**
-   * Завершает «висящий» запрос. Без аргумента — пустым ответом, как long polling
-   * по истечении таймаута; с аргументом — этим телом JSON (запоздавший ответ).
-   */
   release: (body?: unknown) => void;
 }
 
@@ -24,11 +16,7 @@ function methodName(url: string): string {
   return /\/waInstance[^/]+\/([^/?]+)/.exec(url)?.[1] ?? 'unknown';
 }
 
-/**
- * Подмена fetch для тестов: ответы задаются очередью на каждый метод GREEN-API.
- * Если очередь метода пуста, запрос «висит», как long polling на пустой очереди, пока его
- * не отменят или не отпустят через `release` — так видно, сколько запросов сейчас в полёте.
- */
+// ответы задаются очередью на метод; если очередь пуста, запрос висит, как long polling
 export function mockGreenApi() {
   const replies = new Map<string, Reply[]>();
   const calls: RecordedCall[] = [];
@@ -76,7 +64,6 @@ export function mockGreenApi() {
 
   return {
     calls,
-    /** Ставит ответ в очередь метода: тело JSON (по умолчанию 200) или ошибка сети. */
     reply(method: string, body?: unknown, status?: number) {
       const queue = replies.get(method) ?? [];
       queue.push({ body, status });
@@ -87,7 +74,6 @@ export function mockGreenApi() {
       queue.push(error);
       replies.set(method, queue);
     },
-    /** Запросы метода, которые сейчас в полёте: ответа ещё нет и их не отменили. */
     pending(method: string): RecordedCall[] {
       return calls.filter(
         (call) => call.method === method && !call.answered && !call.signal.aborted,
@@ -96,7 +82,6 @@ export function mockGreenApi() {
     methods(): string[] {
       return calls.map((call) => call.method);
     },
-    /** Все вызовы одного метода по порядку. */
     callsOf(method: string): RecordedCall[] {
       return calls.filter((call) => call.method === method);
     },

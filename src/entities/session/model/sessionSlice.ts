@@ -2,7 +2,6 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { Credentials } from '@/shared/api';
 
 export interface SessionState {
-  /** Учётные данные подключённого инстанса; `null` — пользователь не вошёл. */
   credentials: Credentials | null;
 }
 
@@ -15,7 +14,6 @@ const sessionSlice = createSlice({
     sessionStarted(state, action: PayloadAction<Credentials>) {
       state.credentials = action.payload;
     },
-    /** Выход: корневой редьюсер по этому экшену сбрасывает всё состояние приложения. */
     sessionEnded(state) {
       state.credentials = null;
     },

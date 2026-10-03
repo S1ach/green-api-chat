@@ -4,7 +4,6 @@ import { loadJson, removeKey, saveJson } from '@/shared/lib/storage';
 
 const STORAGE_KEY = 'greenapi.credentials';
 
-/** Учётные данные, сохранённые в прошлый раз; `null`, если их нет или запись повреждена. */
 export function loadCredentials(): Credentials | null {
   const raw = loadJson<unknown>(STORAGE_KEY);
   if (!isRecord(raw)) {
@@ -16,7 +15,6 @@ export function loadCredentials(): Credentials | null {
   if (!apiUrl || !idInstance || !apiTokenInstance) {
     return null;
   }
-  // mediaUrl необязателен: его нет в записях, сохранённых до появления отправки файлов.
   const mediaUrl = readString(raw, 'mediaUrl');
   return { apiUrl, idInstance, apiTokenInstance, ...(mediaUrl ? { mediaUrl } : {}) };
 }

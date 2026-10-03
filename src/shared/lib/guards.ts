@@ -1,5 +1,3 @@
-/** Безопасные проверки формы данных, пришедших из сети (строгий режим, без `any`). */
-
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

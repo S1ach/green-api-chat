@@ -31,7 +31,6 @@ const ATTACHMENT_ICONS: Record<AttachmentKind, LucideIcon> = {
   poll: ChartColumn,
 };
 
-/** Статусы, которые показываются значком рядом со временем. Ошибка выводится отдельной строкой. */
 const STATUS_ICONS: Partial<Record<MessageStatus, { icon: LucideIcon; label: string }>> = {
   sending: { icon: Clock3, label: 'Отправляется' },
   sent: { icon: Check, label: 'Отправлено' },
@@ -41,7 +40,6 @@ const STATUS_ICONS: Partial<Record<MessageStatus, { icon: LucideIcon; label: str
 
 const URL_PATTERN = /(https?:\/\/[^\s<>"']+)/g;
 
-/** Текст приходит от собеседника: в разметку превращаются только http(s)-ссылки. */
 function withLinks(text: string): ReactNode[] {
   return text.split(URL_PATTERN).map((part, index) =>
     index % 2 === 1 ? (
@@ -70,7 +68,6 @@ function AttachmentView({ attachment }: { attachment: Attachment }) {
     </>
   );
 
-  // Сами файлы приложение не показывает: вложение открывается по ссылке (файл или карта).
   return attachment.url === null ? (
     <span className={styles.attachment}>{content}</span>
   ) : (
@@ -87,15 +84,11 @@ function AttachmentView({ attachment }: { attachment: Attachment }) {
 
 interface Props {
   message: Message;
-  /** Последнее в серии сообщений одного автора: у него «хвостик» и отступ до следующей серии. */
   isGroupEnd?: boolean;
-  /** Повторить отправку сообщения с ошибкой. */
   onRetry?: (messageId: string) => void;
-  /** Убрать неотправленное сообщение. */
   onRemove?: (messageId: string) => void;
 }
 
-/** Сообщение в ленте чата: входящие слева, исходящие справа. */
 export const MessageBubble = memo(function MessageBubble({
   message,
   isGroupEnd = true,
@@ -118,7 +111,6 @@ export const MessageBubble = memo(function MessageBubble({
         {message.attachment !== undefined && <AttachmentView attachment={message.attachment} />}
         <p className={styles.text}>
           {withLinks(message.text)}
-          {/* Время «плавает» справа в последней строке текста, а если не помещается — под ним. */}
           <span className={styles.meta}>
             <time dateTime={new Date(message.timestamp).toISOString()}>
               {formatTime(message.timestamp)}

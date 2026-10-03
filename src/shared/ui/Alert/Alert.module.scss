@@ -1,6 +1,5 @@
 @use '@/shared/styles/mixins';
 
-// Нейтральная плашка с цветной иконкой: в MAX статус передаёт иконка, а не заливка.
 .alert {
   @include mixins.description;
 

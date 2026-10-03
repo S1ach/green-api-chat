@@ -8,11 +8,8 @@ import styles from './MessageList.module.scss';
 
 interface Props {
   messages: Message[];
-  /** Идёт запрос истории с сервера. */
   isLoading: boolean;
-  /** Историю получить не удалось. */
   error: string | null;
-  /** На сервере могут быть сообщения старше показанных. */
   hasMore: boolean;
   onLoadMore: () => void;
   onRetryLoad: () => void;
@@ -20,7 +17,6 @@ interface Props {
   onRemoveMessage: (messageId: string) => void;
 }
 
-/** Заглушка на время первой загрузки: силуэты сообщений вместо пустого экрана. */
 function MessageSkeleton() {
   return (
     <div className={styles.skeleton} role="status" aria-label="Загружаем сообщения">
@@ -44,7 +40,6 @@ export function MessageList({
   onRemoveMessage,
 }: Props) {
   const { ref, onScroll, isAtBottom, unseenCount, scrollToBottom } = useChatScroll(messages);
-  // Лента бывает длинной: разметку серий и дней пересчитываем только при её изменении.
   const rows = useMemo(() => toMessageRows(messages), [messages]);
   const isEmpty = messages.length === 0;
 
@@ -97,7 +92,6 @@ export function MessageList({
               {rows.map(({ message, dayLabel, isGroupEnd }) => (
                 <Fragment key={message.id}>
                   {dayLabel !== null && (
-                    // Разделитель дня — не сообщение: для скринридера это просто текст в ленте.
                     <li className={styles.day} role="presentation">
                       <span>{dayLabel}</span>
                     </li>

@@ -9,7 +9,6 @@ interface Props {
   onLogout: () => void;
 }
 
-/** Круглая кнопка «+» с выпадающим меню действий боковой панели. */
 export function SidebarMenu({ onNewChat, onLogout }: Props) {
   const { isOpen, rootRef, toggle, close } = usePopup<HTMLDivElement>();
 
@@ -27,7 +26,6 @@ export function SidebarMenu({ onNewChat, onLogout }: Props) {
         aria-expanded={isOpen}
         onClick={toggle}
       >
-        {/* Открытое меню: плюс поворачивается в крестик. */}
         <Plus
           className={clsx(styles.plus, isOpen && styles.open)}
           size={22}

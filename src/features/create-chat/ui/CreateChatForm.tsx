@@ -12,7 +12,6 @@ interface Props {
   onClose: () => void;
 }
 
-/** Новый чат по номеру телефона получателя. */
 export function CreateChatForm({ onClose }: Props) {
   const dispatch = useAppDispatch();
   const [warning, setWarning] = useState<string | null>(null);
@@ -35,7 +34,7 @@ export function CreateChatForm({ onClose }: Props) {
     } else if (result.status === 'notRegistered') {
       setError('phone', { message: `Номер ${formatPhone(phone)} не зарегистрирован в MAX.` });
     } else if (result.warning !== null) {
-      // Чат создан, но номер проверить не удалось — предупреждаем и оставляем форму открытой.
+      // чат создан, но номер не проверили — форму не закрываем
       setWarning(result.warning);
     } else {
       onClose();

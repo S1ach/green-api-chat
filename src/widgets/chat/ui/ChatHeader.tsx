@@ -7,9 +7,7 @@ import styles from './ChatHeader.module.scss';
 
 interface Props {
   chat: Chat;
-  /** Закрыть чат: на широком экране открывается заглушка, на узком — список чатов. */
   onClose: () => void;
-  /** Перечитать историю чата с сервера. */
   onRefresh: () => void;
   isRefreshing: boolean;
 }

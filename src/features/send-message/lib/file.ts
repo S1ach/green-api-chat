@@ -2,7 +2,6 @@ import { MAX_FILE_SIZE_BYTES } from '@/shared/config';
 
 const UNITS = ['Б', 'КБ', 'МБ', 'ГБ'];
 
-/** Размер файла для показа: «512 Б», «1,2 МБ». */
 export function formatFileSize(bytes: number): string {
   let value = bytes;
   let unit = 0;
@@ -14,10 +13,6 @@ export function formatFileSize(bytes: number): string {
   return `${value.toFixed(digits).replace('.', ',')} ${UNITS[unit]}`;
 }
 
-/**
- * Проверка файла до отправки — по ограничениям SendFileByUpload.
- * Возвращает текст ошибки или `null`, если файл можно отправлять.
- */
 export function validateFile(file: Pick<File, 'size'>): string | null {
   if (file.size === 0) {
     return 'Файл пустой — отправить его нельзя.';

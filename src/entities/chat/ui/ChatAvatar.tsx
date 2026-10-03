@@ -12,15 +12,8 @@ interface Props {
   size?: number;
 }
 
-/**
- * Аватар чата. Ссылка хранится в самом чате и переживает перезагрузку страницы;
- * у API она запрашивается, только когда её ещё нет или она устарела (см. `loadChatAvatar`).
- * Аватар — украшение: пока ссылки нет и при любой ошибке показываем инициалы.
- * У «Избранного» вместо аватара закладка — как в самом MAX.
- */
 export function ChatAvatar({ chat, size = 48 }: Props) {
   const dispatch = useAppDispatch();
-  // Один запрос на всё приложение: кэш общий для всех аватаров.
   const { data: ownChatId } = useGetAccountSettingsQuery();
   const isSavedMessages = isSavedMessagesChat(chat, ownChatId);
   const hasRetried = useRef(false);
@@ -43,7 +36,7 @@ export function ChatAvatar({ chat, size = 48 }: Props) {
     );
   }
 
-  // Сохранённая ссылка перестала открываться: один раз запрашиваем новую, не дожидаясь срока.
+  // ссылка протухла — один раз просим новую
   const handleError = () => {
     if (!hasRetried.current) {
       hasRetried.current = true;

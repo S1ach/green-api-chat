@@ -2,13 +2,11 @@ import { isRecord, readNumber, readRecord, readString } from '@/shared/lib/guard
 import { formatPhone } from '@/shared/lib/phone';
 import type { Attachment, AttachmentKind, Message } from '../model/types';
 
-/** Содержимое сообщения: текст (или подпись) и вложение, если оно есть. */
 export type MessageContent = Pick<Message, 'text' | 'attachment'>;
 
-/** typeMessage, в которых содержимое — текст. */
 const TEXT_TYPES = new Set(['textMessage', 'extendedTextMessage', 'quotedMessage']);
 
-/** typeMessage с вложением. Реакции, правки и удаления сообщениями не считаются. */
+// реакции, правки и удаления сюда не попадают
 const ATTACHMENT_KINDS: Record<string, AttachmentKind> = {
   imageMessage: 'image',
   videoMessage: 'video',
@@ -20,7 +18,6 @@ const ATTACHMENT_KINDS: Record<string, AttachmentKind> = {
   pollMessage: 'poll',
 };
 
-/** Вид вложения по MIME-типу файла — для сообщения, которое ещё отправляется. */
 export function attachmentKindOfFile(mimeType: string): AttachmentKind {
   const [group] = mimeType.split('/');
   return group === 'image' || group === 'video' || group === 'audio' ? group : 'document';
@@ -41,35 +38,31 @@ export function attachmentLabel(attachment: Attachment): string {
   return ATTACHMENT_LABELS[attachment.kind];
 }
 
-/** Одна строка для списка чатов: текст сообщения, а для вложения без подписи — его название. */
-export function previewText(message: Pick<Message, 'text' | 'attachment'>): string {
+export function previewText(message: MessageContent): string {
   if (message.text !== '') {
     return message.text;
   }
   return message.attachment ? attachmentLabel(message.attachment) : '';
 }
 
-/** Ссылка приходит из сети и попадает в `href` — пропускаем только http(s). */
+// попадает в href — пропускаем только http(s)
 export function safeUrl(value: string | null | undefined): string | null {
   return typeof value === 'string' && /^https?:\/\//i.test(value) ? value : null;
 }
 
-/** Геопозиция: координаты подписью и ссылка, по которой точка открывается на карте. */
 export function locationAttachment(latitude: number, longitude: number): Attachment {
   return {
     kind: 'location',
-    // У Яндекс Карт порядок обратный: сначала долгота.
+    // у Яндекс Карт сначала долгота
     url: `https://yandex.ru/maps/?pt=${longitude},${latitude}&z=16&l=map`,
     name: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
   };
 }
 
-/** Контакт: показываем имя — или номер, если имени нет. */
 export function contactAttachment(name: string | null): Attachment {
   return { kind: 'contact', url: null, name: name || null };
 }
 
-/** locationMessageData: { latitude, longitude }. */
 function locationFrom(data: Record<string, unknown> | null): Attachment {
   const latitude = data ? readNumber(data, 'latitude') : null;
   const longitude = data ? readNumber(data, 'longitude') : null;
@@ -83,7 +76,6 @@ function locationFrom(data: Record<string, unknown> | null): Attachment {
     : { kind: 'location', url: null, name: null };
 }
 
-/** contactMessageData: { displayName, phoneNumber, … }; номер 0 означает, что он скрыт. */
 function contactFrom(data: Record<string, unknown> | null): Attachment {
   const phoneNumber = data ? readNumber(data, 'phoneNumber') : null;
   const phone = phoneNumber !== null && phoneNumber > 0 ? formatPhone(String(phoneNumber)) : null;
@@ -91,9 +83,7 @@ function contactFrom(data: Record<string, unknown> | null): Attachment {
 }
 
 function attachmentFrom(typeMessage: string, source: Record<string, unknown>): Attachment {
-  // В уведомлении данные файла вложены в fileMessageData, в истории лежат на верхнем уровне.
-  // Для геопозиции и контакта документация описывает только формат уведомления, поэтому
-  // в истории читаем те же объекты, если они пришли.
+  // в уведомлении файл лежит в fileMessageData, в истории — на верхнем уровне
   if (typeMessage === 'locationMessage') {
     return locationFrom(
       readRecord(source, 'locationMessageData') ?? readRecord(source, 'location'),
@@ -110,49 +100,35 @@ function attachmentFrom(typeMessage: string, source: Record<string, unknown>): A
   };
 }
 
-/**
- * Содержимое из `messageData` уведомления (формат MAX, GREEN-API v3):
- * - textMessage → textMessageData.textMessage;
- * - extendedTextMessage (текст со ссылкой), quotedMessage (ответ с цитатой) → extendedTextMessageData.text;
- * - image/video/audio/document/sticker → fileMessageData (downloadUrl, caption, fileName);
- * - location → locationMessageData (latitude, longitude);
- * - contact → contactMessageData (displayName, phoneNumber);
- * - poll → вложение без данных.
- * `null` — тип не является сообщением (реакция, правка, удаление) или данные повреждены.
- */
+// null — это не сообщение (реакция, правка, удаление) или данные битые
 export function contentFromNotification(messageData: unknown): MessageContent | null {
   if (!isRecord(messageData)) {
     return null;
   }
-  const data = messageData;
-  const typeMessage = readString(data, 'typeMessage');
+  const typeMessage = readString(messageData, 'typeMessage');
   if (typeMessage === null) {
     return null;
   }
 
   if (typeMessage === 'textMessage') {
-    const text = readTextField(readRecord(data, 'textMessageData'), 'textMessage');
+    const text = readTextField(readRecord(messageData, 'textMessageData'), 'textMessage');
     return text === null ? null : { text };
   }
   if (TEXT_TYPES.has(typeMessage)) {
-    const text = readTextField(readRecord(data, 'extendedTextMessageData'), 'text');
+    const text = readTextField(readRecord(messageData, 'extendedTextMessageData'), 'text');
     return text === null ? null : { text };
   }
   if (typeMessage in ATTACHMENT_KINDS) {
-    const file = readRecord(data, 'fileMessageData');
+    const file = readRecord(messageData, 'fileMessageData');
     return {
       text: (file ? readString(file, 'caption') : null) ?? '',
-      attachment: attachmentFrom(typeMessage, data),
+      attachment: attachmentFrom(typeMessage, messageData),
     };
   }
   return null;
 }
 
-/**
- * Содержимое из элемента GetChatHistory и журналов: поля там лежат на верхнем уровне.
- * Текст — в `textMessage`; запасные места — `extendedTextMessage.text` и,
- * для цитат, `extendedTextMessageData.text`.
- */
+// в истории и журналах поля лежат на верхнем уровне
 export function contentFromHistory(item: Record<string, unknown>): MessageContent | null {
   const typeMessage = readString(item, 'typeMessage');
   if (typeMessage === null) {

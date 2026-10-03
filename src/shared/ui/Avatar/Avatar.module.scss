@@ -4,7 +4,6 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--border-radius-circle);
-  // Тонкая обводка отделяет светлую картинку от фона — как у AvatarContainer в max-ui.
   box-shadow: inset 0 0 0 0.5px var(--divider-secondary);
   color: var(--text-primary-inverse-static);
   font-weight: 600;
@@ -13,7 +12,6 @@
   user-select: none;
 }
 
-// Служебный чат со значком — на фирменном цвете, а не на случайном градиенте.
 .themed {
   background: var(--button-primary);
 }

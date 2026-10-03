@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { describeNotification, parseNotification } from './notification';
 
-/** Уведомление по документации GREEN-API для MAX. */
 const incomingText = {
   typeWebhook: 'incomingMessageReceived',
   instanceData: { idInstance: 3100000000, wid: '79991234567@c.us', typeInstance: 'v3' },

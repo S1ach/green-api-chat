@@ -29,7 +29,6 @@ describe('App: сценарий из ТЗ', () => {
     api.reply('getChatHistory', []);
     api.reply('sendMessage', { idMessage: 'out-1' });
 
-    // StrictMode, как в приложении: эффекты монтируются дважды.
     const { store } = renderWithStore(<App />, { preloadedState: {}, strict: true });
 
     // 1. Пользователь вводит учётные данные инстанса.

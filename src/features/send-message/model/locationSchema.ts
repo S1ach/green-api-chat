@@ -1,9 +1,6 @@
 import { z } from 'zod';
 
-/**
- * Координата вводится текстом: десятичный разделитель — точка или запятая.
- * Схема сразу превращает её в число в допустимых пределах.
- */
+// разделитель может быть и точкой, и запятой
 function coordinate(name: string, limit: number) {
   return z
     .string()
@@ -24,7 +21,5 @@ export const locationSchema = z.object({
   longitude: coordinate('долготу', 180),
 });
 
-/** Значения полей формы — строки. */
 export type LocationFormInput = z.input<typeof locationSchema>;
-/** Проверенные координаты — числа. */
 export type LocationFormValues = z.output<typeof locationSchema>;

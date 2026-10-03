@@ -1,15 +1,12 @@
 import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import type { Message } from '@/entities/message';
 
-/** Ближе этого расстояния до низа считаем, что пользователь читает свежие сообщения. */
 const NEAR_BOTTOM_PX = 120;
 
 interface ChatScroll {
   ref: RefObject<HTMLDivElement>;
   onScroll: () => void;
-  /** Пользователь у конца ленты — кнопка «вниз» не нужна. */
   isAtBottom: boolean;
-  /** Сколько входящих пришло, пока пользователь читал историю выше. */
   unseenCount: number;
   scrollToBottom: () => void;
 }
@@ -20,18 +17,11 @@ interface Snapshot {
   scrollHeight: number;
 }
 
-/**
- * Прокрутка ленты сообщений.
- * - При открытии чата и пока пользователь внизу, лента держится у последнего сообщения.
- * - Собственное сообщение всегда прокручивает ленту вниз.
- * - Если пользователь ушёл читать историю, новые входящие его не перебрасывают —
- *   они считаются и показываются на кнопке «вниз».
- * - При подгрузке более ранних сообщений позиция сохраняется: лента не прыгает.
- */
+// пока пользователь внизу — держимся у последнего сообщения;
+// ушёл читать историю — не дёргаем, только считаем новые
 export function useChatScroll(messages: Message[]): ChatScroll {
   const ref = useRef<HTMLDivElement>(null);
   const snapshot = useRef<Snapshot | null>(null);
-  // Ref — для расчётов в эффекте без лишних перерисовок, state — для кнопки «вниз».
   const atBottom = useRef(true);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [unseenCount, setUnseenCount] = useState(0);
@@ -49,8 +39,7 @@ export function useChatScroll(messages: Message[]): ChatScroll {
     if (list === null) {
       return;
     }
-    // Высота ленты могла измениться и без новых сообщений (ширина окна, вложения):
-    // запоминаем актуальную, чтобы подгрузка истории компенсировала ровно свой прирост.
+    // высота могла измениться и без новых сообщений (ресайз окна)
     if (snapshot.current !== null) {
       snapshot.current.scrollHeight = list.scrollHeight;
     }
@@ -87,7 +76,7 @@ export function useChatScroll(messages: Message[]): ChatScroll {
         setAtBottom(true);
       }
     } else if (previous !== null && !hasNewLast && previous.firstId !== first.id) {
-      // Сверху добавились более ранние сообщения: компенсируем прирост высоты.
+      // подгрузили историю сверху — компенсируем высоту
       list.scrollTop += list.scrollHeight - previous.scrollHeight;
     } else if (previous !== null && hasNewLast) {
       setUnseenCount((count) => count + 1);

@@ -16,7 +16,6 @@ interface Props {
   onCancel: () => void;
 }
 
-/** Координаты для SendLocation: вводятся вручную или берутся у браузера. */
 export function LocationForm({ onSubmit, onCancel }: Props) {
   const [isLocating, setIsLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);

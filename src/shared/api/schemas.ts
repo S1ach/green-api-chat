@@ -1,15 +1,8 @@
 import { z } from 'zod';
 
-/**
- * Схемы «сырых» ответов GREEN-API. RTK Query проверяет по ним тело ответа до того,
- * как данные попадут в приложение: неожиданный формат становится обычной ошибкой запроса.
- */
-
-/** Ответ getStateInstance. */
 export const stateInstanceSchema = z.object({ stateInstance: z.string() });
 export type StateInstanceResponse = z.infer<typeof stateInstanceSchema>;
 
-/** Ответ GetSettings — только поля, влияющие на приём сообщений и статусов. */
 export const settingsSchema = z.object({
   webhookUrl: z.string().nullish(),
   incomingWebhook: z.string().nullish(),
@@ -18,39 +11,32 @@ export const settingsSchema = z.object({
 });
 export type SettingsResponse = z.infer<typeof settingsSchema>;
 
-/** Ответ SetSettings. */
 export const setSettingsSchema = z.object({ saveSettings: z.boolean() });
 
-/** Ответ CheckAccount: инстанс не готов либо результат проверки номера. */
+// либо инстанс не готов, либо результат проверки
 export const checkAccountSchema = z.union([
   z.object({ status: z.literal(false), reason: z.string().optional() }),
   z.object({ exist: z.boolean(), chatId: z.string().optional() }),
 ]);
 export type CheckAccountResponse = z.infer<typeof checkAccountSchema>;
 
-/** Ответ GetAvatar: пустая строка, если аватара нет или он скрыт настройками приватности. */
 export const avatarSchema = z.object({ urlAvatar: z.string().nullish() });
 export type AvatarResponse = z.infer<typeof avatarSchema>;
 
-/** Ответ GetContactInfo — только ссылка на аватар. */
 export const contactInfoSchema = z.object({ avatar: z.string().nullish() });
 export type ContactInfoResponse = z.infer<typeof contactInfoSchema>;
 
-/** Ответ SendMessage. */
 export const sendMessageSchema = z.object({ idMessage: z.string() });
 export type SendMessageResponse = z.infer<typeof sendMessageSchema>;
 
-/** Ответ SendFileByUpload: кроме idMessage приходит ссылка на загруженный файл. */
 export const sendFileSchema = z.object({ idMessage: z.string(), urlFile: z.string().nullish() });
 export type SendFileResponse = z.infer<typeof sendFileSchema>;
 
-/** Ответ GetAccountSettings — только chatId собственного чата («Избранное»). */
 export const accountSettingsSchema = z.object({
   chatId: z.union([z.string(), z.number()]).nullish(),
 });
 export type AccountSettingsResponse = z.infer<typeof accountSettingsSchema>;
 
-/** Элемент ответа GetContacts. */
 export const remoteContactSchema = z.object({
   chatId: z.string().min(1),
   name: z.string().nullish(),
@@ -58,10 +44,9 @@ export const remoteContactSchema = z.object({
   phoneNumber: z.number().nullish(),
 });
 
-/** Ответы GetChats, GetContacts, GetChatHistory и журналов: элементы разбираются по одному, битые пропускаются. */
+// элементы разбираем по одному, битые пропускаем
 export const listSchema = z.array(z.unknown());
 
-/** Элемент ответа GetChats. */
 export const remoteChatSchema = z.object({
   chatId: z.string().min(1),
   name: z.string().nullish(),
@@ -69,11 +54,10 @@ export const remoteChatSchema = z.object({
   phoneNumber: z.number().nullish(),
 });
 
-/** Ответ ReceiveNotification: `null` (очередь пуста) либо конверт с квитанцией. */
+// null — очередь пуста
 export const notificationSchema = z
   .object({
     receiptId: z.number(),
-    /** Тело уведомления разбирается отдельно — в `entities/message`. */
     body: z.unknown(),
   })
   .nullable();

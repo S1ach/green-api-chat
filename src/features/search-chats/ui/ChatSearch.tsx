@@ -8,7 +8,6 @@ interface Props {
   onChange: (query: string) => void;
 }
 
-/** Строка поиска над списком чатов. Escape и кнопка с крестиком очищают запрос. */
 export function ChatSearch({ value, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 

@@ -2,30 +2,25 @@ import { isRecord, readNumber, readRecord, readString } from '@/shared/lib/guard
 import type { MessageStatus, ReceivedMessage } from '../model/types';
 import { contentFromNotification } from './content';
 
-/** Что приложение умеет делать с уведомлением из очереди. */
 export type ParsedNotification =
-  /** Новое сообщение: входящее либо отправленное с телефона или через API. */
   | ({ kind: 'message' } & ReceivedMessage)
-  /** Изменился статус отправленного сообщения. */
   | { kind: 'status'; chatId: string; idMessage: string; status: MessageStatus; error?: string };
 
-/** typeWebhook уведомлений о сообщениях и направление сообщения в каждом из них. */
 const MESSAGE_WEBHOOKS: Record<string, 'incoming' | 'outgoing'> = {
   incomingMessageReceived: 'incoming',
-  // Отправлено с телефона, из веб- или desktop-версии MAX.
+  // с телефона или из другого клиента
   outgoingMessageReceived: 'outgoing',
-  // Отправлено через API — в том числе этим приложением.
+  // через API
   outgoingAPIMessageReceived: 'outgoing',
 };
 
-/** Значения `status` из outgoingMessageStatus, которые означают, что сообщение не ушло. */
 const FAILED_STATUSES: Record<string, string> = {
   failed: 'MAX не принял сообщение.',
   noAccount: 'У получателя нет аккаунта MAX.',
   notInGroup: 'Вы не состоите в этом групповом чате.',
 };
 
-/** Краткая сводка уведомления для диагностических логов — без текста сообщения. */
+// для логов, без текста сообщения
 export function describeNotification(body: unknown): string {
   if (!isRecord(body)) {
     return 'unknown';
@@ -50,12 +45,7 @@ function parseStatus(body: Record<string, unknown>): ParsedNotification | null {
   return error === undefined ? null : { kind: 'status', chatId, idMessage, status: 'error', error };
 }
 
-/**
- * Разбирает тело уведомления из ReceiveNotification во внутреннюю модель.
- * `null` — уведомление приложению не нужно (смена состояния инстанса, реакция, правка…)
- * либо его структура повреждена. Каждое поле проверяется на существование и тип:
- * данные приходят из сети.
- */
+// null — уведомление нам не нужно или оно битое
 export function parseNotification(body: unknown): ParsedNotification | null {
   if (!isRecord(body)) {
     return null;
@@ -81,18 +71,16 @@ export function parseNotification(body: unknown): ParsedNotification | null {
   const timestamp = timestampSeconds !== null ? timestampSeconds * 1000 : Date.now();
   const chatType = readString(senderData, 'chatType');
   const chatName = readString(senderData, 'chatName') || null;
-  // В личном чате собеседник и есть отправитель входящего: его имя из контактов точнее.
   const personalName =
     readString(senderData, 'senderContactName') || readString(senderData, 'senderName') || null;
   const isPersonalIncoming = direction === 'incoming' && chatType !== 'group';
-  // MAX присылает 0, если номер скрыт или отправитель — группа.
+  // 0 — номер скрыт
   const phoneNumber = readNumber(senderData, 'senderPhoneNumber');
 
   return {
     kind: 'message',
     message: {
-      // Без idMessage дедупликация невозможна, поэтому подставляем стабильный ключ
-      // из chatId и времени: повторная доставка того же уведомления даст тот же ключ.
+      // нет idMessage — собираем ключ сами, чтобы повторная доставка не дала дубль
       id: readString(body, 'idMessage') || `${chatId}-${timestamp}`,
       chatId,
       direction,

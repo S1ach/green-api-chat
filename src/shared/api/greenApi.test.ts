@@ -12,7 +12,6 @@ const credentials: Credentials = {
 
 const BASE = 'https://api.green-api.com/waInstance1101000001';
 
-/** Минимальный store: baseQuery читает из него только учётные данные сессии. */
 function createStore(session: { credentials: Credentials | null } = { credentials }) {
   return configureStore({
     reducer: {

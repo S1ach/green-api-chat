@@ -1,6 +1,5 @@
 @use '@/shared/styles/mixins';
 
-// Варианты, размеры и состояния — по Button из max-ui.
 .button {
   @include mixins.resetButton;
 
@@ -91,7 +90,7 @@
   width: 100%;
 }
 
-// Во время загрузки текст скрыт, но ширина кнопки не меняется.
+// текст скрыт, но ширина кнопки не меняется
 .loading {
   cursor: wait;
 

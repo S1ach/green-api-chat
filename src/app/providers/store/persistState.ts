@@ -7,7 +7,6 @@ import {
 } from '@/entities/session';
 import type { AppStore } from './store';
 
-/** Состояние из localStorage: учётные данные прошлого входа и кэш чатов этого инстанса. */
 export function loadPersistedState(): Partial<RootState> | undefined {
   const credentials = loadCredentials();
   if (credentials === null) {
@@ -16,10 +15,7 @@ export function loadPersistedState(): Partial<RootState> | undefined {
   return { session: { credentials }, chat: loadChatCache(credentials.idInstance) };
 }
 
-/**
- * Сохраняет в localStorage учётные данные и чаты текущего инстанса при их изменении.
- * Без активной сессии чаты не пишутся — выход не затирает кэш пустым состоянием.
- */
+// без сессии чаты не пишем, иначе выход затрёт кэш пустым состоянием
 export function persistState(store: AppStore): void {
   let saved = store.getState();
 

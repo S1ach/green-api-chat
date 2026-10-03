@@ -8,11 +8,7 @@ function readStatus(item: Record<string, unknown>): MessageStatus {
   return status === 'delivered' || status === 'read' ? status : 'sent';
 }
 
-/**
- * Переводит элемент GetChatHistory или журнала во внутренний формат.
- * Запасные значения нужны, когда поле не пришло: в журналах направление задаёт
- * сам метод, а в истории чат известен из запроса.
- */
+// fallback: в журнале направление известно из метода, в истории чат известен из запроса
 function normalizeItem(
   raw: unknown,
   fallback: { direction?: MessageDirection; chatId?: string },
@@ -39,11 +35,6 @@ function normalizeItem(
   };
 }
 
-/**
- * Ответ GetChatHistory (новые сверху) → сообщения чата от старых к новым.
- * `chatId` — идентификатор чата в приложении: им помечаем сообщения,
- * а сообщения чужих чатов отбрасываем.
- */
 export function normalizeHistory(raw: unknown, chatId: string): Message[] {
   if (!Array.isArray(raw)) {
     return [];
@@ -58,10 +49,6 @@ export function normalizeHistory(raw: unknown, chatId: string): Message[] {
   return mergeMessages([], messages);
 }
 
-/**
- * Ответ LastIncomingMessages / LastOutgoingMessages → сообщения разных чатов
- * со сведениями о чате (имя собеседника есть только у входящих личных сообщений).
- */
 export function normalizeJournal(raw: unknown, direction: MessageDirection): ReceivedMessage[] {
   if (!Array.isArray(raw)) {
     return [];
@@ -88,7 +75,7 @@ export function normalizeJournal(raw: unknown, direction: MessageDirection): Rec
   return received;
 }
 
-/** Статус только «растёт»: устаревший ответ истории не вернёт «прочитано» обратно в «отправлено». */
+// статус только растёт
 const STATUS_RANK: Record<MessageStatus, number> = {
   error: 0,
   sending: 0,
@@ -108,11 +95,8 @@ function isLocal(message: Message): boolean {
   return message.status === 'sending' || message.status === 'error';
 }
 
-/**
- * Порядок сообщений в ленте: по времени, а внутри одной секунды (GREEN-API отдаёт время
- * в секундах) — по idMessage, у MAX он числовой и растёт. Ещё не отправленные сообщения
- * всегда в конце: часы клиента могут отставать от серверных.
- */
+// время в API в секундах, внутри секунды сортируем по idMessage.
+// Неотправленные всегда в конце: часы клиента могут отставать
 export function compareMessages(a: Message, b: Message): number {
   if (isLocal(a) !== isLocal(b)) {
     return isLocal(a) ? 1 : -1;
@@ -136,13 +120,7 @@ function sameContent(a: Message, b: Message): boolean {
   );
 }
 
-/**
- * Добавляет к уже известным сообщениям чата полученные из API (история, журнал, уведомление).
- * - Дубли убираются по id (= idMessage GREEN-API).
- * - Для известного сообщения берутся свежие данные с сервера, а статус только повышается.
- * - Старые сообщения не пропадают: история дополняет ленту, а не заменяет её.
- * - Если ничего не изменилось, возвращается тот же массив — без лишних перерисовок.
- */
+// если ничего не поменялось, возвращаем тот же массив — без лишних перерисовок
 export function mergeMessages(current: Message[], incoming: Message[]): Message[] {
   const byId = new Map(current.map((message) => [message.id, message]));
   let changed = false;
@@ -156,7 +134,7 @@ export function mergeMessages(current: Message[], incoming: Message[]): Message[
     }
     const status = laterStatus(known.status, message.status);
     const merged: Message = { ...known, ...message, ...(status ? { status } : {}) };
-    // Ссылку и подпись вложения отдают не все методы: уже известные не теряем.
+    // url и name вложения отдают не все методы
     if (merged.attachment && known.attachment) {
       merged.attachment = {
         ...merged.attachment,

@@ -17,17 +17,11 @@ interface Props {
   chat: ChatModel;
 }
 
-/**
- * Открытый диалог: шапка, лента сообщений и поле ввода.
- * Родитель пересоздаёт компонент при смене чата (`key`), поэтому позиция прокрутки,
- * черновик и глубина загруженной истории у каждого чата свои.
- */
 export function Chat({ chat }: Props) {
   const dispatch = useAppDispatch();
   const messages = useAppSelector((state) => selectMessages(state, chat.id));
   const history = useChatHistory(chat.id);
 
-  // Стабильные ссылки: сообщения (memo) не перерисовываются при каждом обновлении ленты.
   const handleRetry = useCallback(
     (messageId: string) => void dispatch(retryMessage(chat.id, messageId)),
     [dispatch, chat.id],
@@ -45,7 +39,6 @@ export function Chat({ chat }: Props) {
         onRefresh={history.retry}
         isRefreshing={history.isLoading}
       />
-      {/* Сообщения уже на экране (из кэша или журнала), но свежую историю получить не удалось. */}
       {history.error !== null && messages.length > 0 && (
         <Alert
           tone="warning"

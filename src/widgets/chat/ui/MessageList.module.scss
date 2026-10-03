@@ -17,14 +17,13 @@
   min-height: 0;
   padding: var(--spacing-size2xl) var(--spacing-size2xl) var(--spacing-size-m);
   overflow-y: auto;
-  // Лента не «прыгает», когда меняется высота поля ввода или появляется плашка.
   overflow-anchor: none;
 }
 
 .list {
   width: 100%;
   max-width: 880px;
-  // Короткая переписка прижата к низу, как в мессенджерах.
+  // короткая переписка прижата к низу
   margin: auto auto 0;
   padding: 0;
   list-style: none;
@@ -37,7 +36,6 @@
   margin-bottom: var(--spacing-size-m);
 }
 
-// Подложка под текст, лежащий на узоре фона: загрузка, «показать более ранние».
 .chip {
   display: flex;
   align-items: center;
@@ -61,7 +59,6 @@
   }
 }
 
-// Состояния пустой ленты: нет сообщений, ошибка загрузки.
 .state {
   display: flex;
   flex-direction: column;
@@ -139,7 +136,6 @@
   }
 }
 
-// Кнопка возврата к последним сообщениям — поверх ленты, над полем ввода.
 .jump {
   position: absolute;
   right: var(--spacing-size2xl);

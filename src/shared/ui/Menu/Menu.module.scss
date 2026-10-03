@@ -1,6 +1,5 @@
 @use '@/shared/styles/mixins';
 
-// Всплывающая поверхность: радиус floating и тень — как у Snackbar в max-ui.
 .menu {
   position: absolute;
   z-index: 10;

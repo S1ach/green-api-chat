@@ -1,14 +1,12 @@
 import { z } from 'zod';
 
-/** Значения формы подключения. Пробелы по краям обрезаются: их часто захватывают при копировании. */
 export const credentialsSchema = z.object({
   apiUrl: z
     .string()
     .trim()
     .min(1, 'Укажите apiUrl')
-    // Относительный путь нужен для dev-прокси: apiUrl = /green-api.
+    // относительный путь — для dev-прокси (/green-api)
     .regex(/^(https?:\/\/|\/)/i, 'apiUrl должен начинаться с https:// или с /'),
-  // Хост для отправки файлов. В личном кабинете он указан рядом с apiUrl; можно не заполнять.
   mediaUrl: z
     .string()
     .trim()

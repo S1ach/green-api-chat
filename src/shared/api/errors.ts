@@ -8,11 +8,7 @@ export type ApiErrorKind =
   | 'server'
   | 'unknown';
 
-/**
- * Ошибка обращения к GREEN-API с понятным пользователю текстом.
- * Обычный объект, а не класс: RTK Query хранит ошибки в store, им нужно сериализоваться.
- * Важно: ни сообщение, ни поля не содержат apiTokenInstance.
- */
+// объект, а не класс: ошибки лежат в сторе и должны сериализоваться
 export interface GreenApiError {
   kind: ApiErrorKind;
   message: string;
@@ -46,7 +42,6 @@ const STATUS_MESSAGES: Record<number, { kind: ApiErrorKind; message: string }> =
   },
 };
 
-/** Человекочитаемое описание HTTP-ошибки GREEN-API. */
 export function httpError(status: number): GreenApiError {
   const known = STATUS_MESSAGES[status];
   if (known) {
@@ -62,7 +57,6 @@ export function httpError(status: number): GreenApiError {
   return { kind: 'unknown', message: `Запрос завершился с ошибкой (${status}).`, status };
 }
 
-/** Ошибка сети/CORS: fetch отклонился до получения ответа. */
 export function networkError(): GreenApiError {
   return {
     kind: 'network',
@@ -71,7 +65,6 @@ export function networkError(): GreenApiError {
   };
 }
 
-/** Ответ пришёл, но его структура не та, что описана в документации. */
 export function unexpectedResponseError(): GreenApiError {
   return { kind: 'unknown', message: 'GREEN-API вернул ответ в неожиданном формате.' };
 }
@@ -86,14 +79,12 @@ export function isGreenApiError(error: unknown): error is GreenApiError {
   );
 }
 
-/** Запрос отменён самим приложением (выход, размонтирование) — это не сбой. */
 export function isAbortError(error: unknown): boolean {
   return (
     typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError'
   );
 }
 
-/** Текст ошибки для UI — без деталей реализации и без токена. */
 export function getApiErrorMessage(error: unknown): string {
   if (isGreenApiError(error)) {
     return error.message;

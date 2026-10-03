@@ -1,6 +1,5 @@
 @use '@/shared/styles/mixins';
 
-// Ячейка списка — CellSimple из max-ui: 12px до аватара и между колонками, 4px между строками.
 .item {
   @include mixins.resetButton;
 

@@ -13,7 +13,6 @@
   color: var(--text-tertiary);
 }
 
-// Поле с заливкой без рамки — режим default у Input в max-ui.
 .input {
   @include mixins.resetTextField;
   @include mixins.body;

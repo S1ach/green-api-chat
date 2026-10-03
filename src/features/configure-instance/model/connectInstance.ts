@@ -6,10 +6,6 @@ import { stateHint } from './stateHints';
 
 export type ConnectResult = { ok: true } | { ok: false; error: string };
 
-/**
- * Подключение инстанса: проверяет учётные данные через getStateInstance и начинает сессию.
- * Возвращает текст ошибки, если данные неверны или инстанс не авторизован в MAX.
- */
 export function connectInstance(credentials: Credentials): AppThunk<Promise<ConnectResult>> {
   return async (dispatch) => {
     let stateInstance: string;
@@ -34,10 +30,7 @@ export function connectInstance(credentials: Credentials): AppThunk<Promise<Conn
   };
 }
 
-/**
- * Выход: сбрасывает состояние приложения и кэш запросов. Опрос очереди
- * останавливается сам — страница чата размонтируется и отменяет свой цикл.
- */
+// опрос очереди остановится сам, когда размонтируется страница чата
 export function disconnectInstance(): AppThunk {
   return (dispatch) => {
     dispatch(sessionEnded());

@@ -40,12 +40,10 @@ import type {
   SendMessageRequest,
 } from './types';
 
-/** Историю чата держим в кэше, чтобы возврат в недавно открытый чат обходился без запроса. */
 const HISTORY_CACHE_SECONDS = 300;
-/** chatId собственного чата у аккаунта не меняется — достаточно узнать его один раз за сессию. */
 const ACCOUNT_CACHE_SECONDS = 3600;
 
-/** Номер из GREEN-API: 0 означает, что он скрыт или его нет. */
+// 0 — номер скрыт
 function toPhone(phoneNumber: number | null | undefined): string | null {
   return typeof phoneNumber === 'number' && phoneNumber > 0 ? String(phoneNumber) : null;
 }
@@ -70,14 +68,14 @@ function toRemoteContacts(items: unknown[]): RemoteContact[] {
     if (!parsed.success) {
       continue;
     }
-    // contactName — имя из записной книжки, name — из профиля MAX.
+    // contactName — из записной книжки, name — из профиля
     const { chatId, name, contactName, phoneNumber } = parsed.data;
     contacts.push({ chatId, name: contactName || name || '', phone: toPhone(phoneNumber) });
   }
   return contacts;
 }
 
-/** Форма SendFileByUpload. Имя файла передаётся отдельным полем: так оно доходит в UTF-8. */
+// fileName отдельным полем — так имя доходит в UTF-8
 export function buildFileForm({ chatId, file, caption }: SendFileRequest): FormData {
   const form = new FormData();
   form.append('chatId', chatId);
@@ -89,10 +87,6 @@ export function buildFileForm({ chatId, file, caption }: SendFileRequest): FormD
   return form;
 }
 
-/**
- * Методы GREEN-API для MAX. Пути и форматы — по официальной документации:
- * `{apiUrl}/waInstance{idInstance}/{method}/{apiTokenInstance}`.
- */
 export const greenApi = createApi({
   reducerPath: 'greenApi',
   baseQuery,
@@ -102,26 +96,20 @@ export const greenApi = createApi({
     return unexpectedResponseError();
   },
   endpoints: (build) => ({
-    /** GET getStateInstance — проверка учётных данных до входа, поэтому они передаются явно. */
     getStateInstance: build.query<StateInstanceResponse, Credentials>({
       query: (credentials) => ({ method: 'getStateInstance', credentials }),
       rawResponseSchema: stateInstanceSchema,
       keepUnusedDataFor: 0,
     }),
 
-    /**
-     * GET getAccountSettings — chatId собственного чата аккаунта: это «Избранное»,
-     * сообщения самому себе. `null`, если API его не отдал.
-     */
+    // chatId своего чата («Избранное»)
     getAccountSettings: build.query<string | null, void>({
       query: () => ({ method: 'getAccountSettings' }),
       rawResponseSchema: accountSettingsSchema,
-      transformResponse: ({ chatId }: AccountSettingsResponse) =>
-        chatId === null || chatId === undefined || chatId === '' ? null : String(chatId),
+      transformResponse: ({ chatId }: AccountSettingsResponse) => (chatId ? String(chatId) : null),
       keepUnusedDataFor: ACCOUNT_CACHE_SECONDS,
     }),
 
-    /** GET getSettings — поля, от которых зависит приём сообщений и статусов. */
     getSettings: build.query<InstanceSettings, void>({
       query: () => ({ method: 'getSettings' }),
       rawResponseSchema: settingsSchema,
@@ -134,10 +122,7 @@ export const greenApi = createApi({
       providesTags: ['Settings'],
     }),
 
-    /**
-     * POST setSettings — меняет только переданные настройки. Инстанс после вызова
-     * перезапускается, настройки применяются в течение нескольких минут.
-     */
+    // после вызова инстанс перезапускается
     setSettings: build.mutation<null, InstanceSettingsPatch>({
       query: (settings) => ({ method: 'setSettings', httpMethod: 'POST', body: { ...settings } }),
       rawResponseSchema: setSettingsSchema,
@@ -145,27 +130,18 @@ export const greenApi = createApi({
       invalidatesTags: ['Settings'],
     }),
 
-    /**
-     * GET getChats — список чатов аккаунта MAX, тот же, что виден в консоли GREEN-API.
-     * Последнего сообщения и времени в ответе нет: их дают журналы сообщений.
-     */
     getChats: build.query<RemoteChat[], void>({
       query: () => ({ method: 'getChats' }),
       rawResponseSchema: listSchema,
       transformResponse: toRemoteChats,
     }),
 
-    /**
-     * GET getContacts — контакты аккаунта MAX. Только ими можно делиться через SendContact.
-     * Список обновляется на стороне GREEN-API с задержкой до 5 минут.
-     */
     getContacts: build.query<RemoteContact[], void>({
       query: () => ({ method: 'getContacts' }),
       rawResponseSchema: listSchema,
       transformResponse: toRemoteContacts,
     }),
 
-    /** POST checkAccount — есть ли номер в MAX и какой у него числовой chatId. */
     checkAccount: build.query<CheckAccountResponse, { phoneNumber: string }>({
       query: ({ phoneNumber }) => ({
         method: 'checkAccount',
@@ -175,10 +151,6 @@ export const greenApi = createApi({
       rawResponseSchema: checkAccountSchema,
     }),
 
-    /**
-     * POST getAvatar — ссылка на аватар или пустая строка. На бесплатном тарифе у метода
-     * квота 100 запросов в месяц, поэтому ссылку хранит сам чат (`loadChatAvatar`).
-     */
     getAvatar: build.query<string, { chatId: string }>({
       query: ({ chatId }) => ({ method: 'getAvatar', httpMethod: 'POST', body: { chatId } }),
       rawResponseSchema: avatarSchema,
@@ -186,10 +158,7 @@ export const greenApi = createApi({
       keepUnusedDataFor: 0,
     }),
 
-    /**
-     * POST getContactInfo — запасной источник ссылки на аватар личного чата и бота,
-     * когда GetAvatar недоступен. С группами метод не работает.
-     */
+    // запасной источник аватара, с группами не работает
     getContactInfo: build.query<string, { chatId: string }>({
       query: ({ chatId }) => ({ method: 'getContactInfo', httpMethod: 'POST', body: { chatId } }),
       rawResponseSchema: contactInfoSchema,
@@ -197,11 +166,7 @@ export const greenApi = createApi({
       keepUnusedDataFor: 0,
     }),
 
-    /**
-     * POST getChatHistory — «сырые» сообщения чата (новые сверху), разбор в `entities/message`.
-     * Смещения у метода нет: более ранние сообщения получают, увеличивая `count`.
-     * MAX отдаёт не больше 5000 сообщений и не глубже 3 месяцев.
-     */
+    // offset нет: чтобы получить более ранние, увеличиваем count
     getChatHistory: build.query<unknown[], ChatHistoryRequest>({
       query: ({ chatId, count }) => ({
         method: 'getChatHistory',
@@ -212,23 +177,17 @@ export const greenApi = createApi({
       keepUnusedDataFor: HISTORY_CACHE_SECONDS,
     }),
 
-    /**
-     * GET lastIncomingMessages?minutes=N — входящие сообщения всех чатов за последние N минут.
-     * Журналы, как и receiveNotification, объявлены mutation: это разовые чтения для сверки,
-     * кэшировать их незачем, а каждый вызов должен получить собственный ответ.
-     */
+    // журналы — mutation: кэшировать их незачем
     lastIncomingMessages: build.mutation<unknown[], JournalRequest>({
       query: ({ minutes }) => ({ method: 'lastIncomingMessages', tail: `?minutes=${minutes}` }),
       rawResponseSchema: listSchema,
     }),
 
-    /** GET lastOutgoingMessages?minutes=N — исходящие сообщения всех чатов за последние N минут. */
     lastOutgoingMessages: build.mutation<unknown[], JournalRequest>({
       query: ({ minutes }) => ({ method: 'lastOutgoingMessages', tail: `?minutes=${minutes}` }),
       rawResponseSchema: listSchema,
     }),
 
-    /** POST sendMessage — отправка текста. */
     sendMessage: build.mutation<SendMessageResponse, SendMessageRequest>({
       query: ({ chatId, message }) => ({
         method: 'sendMessage',
@@ -238,11 +197,7 @@ export const greenApi = createApi({
       rawResponseSchema: sendMessageSchema,
     }),
 
-    /**
-     * POST sendFileByUpload — файл с диска (до 100 МБ) формой multipart/form-data.
-     * Документация рекомендует для этого метода хост mediaUrl из личного кабинета.
-     * Тип сообщения (фото, видео, аудио, документ) MAX определяет сам по расширению файла.
-     */
+    // по документации файлы лучше слать на mediaUrl
     sendFileByUpload: build.mutation<SendFileResponse, SendFileRequest>({
       query: (request) => ({
         method: 'sendFileByUpload',
@@ -253,7 +208,6 @@ export const greenApi = createApi({
       rawResponseSchema: sendFileSchema,
     }),
 
-    /** POST sendLocation — геопозиция по координатам. */
     sendLocation: build.mutation<SendMessageResponse, SendLocationRequest>({
       query: ({ chatId, latitude, longitude }) => ({
         method: 'sendLocation',
@@ -263,7 +217,6 @@ export const greenApi = createApi({
       rawResponseSchema: sendMessageSchema,
     }),
 
-    /** POST sendContact — поделиться контактом из списка контактов инстанса. */
     sendContact: build.mutation<SendMessageResponse, SendContactRequest>({
       query: ({ chatId, contactChatId }) => ({
         method: 'sendContact',
@@ -273,21 +226,16 @@ export const greenApi = createApi({
       rawResponseSchema: sendMessageSchema,
     }),
 
-    /**
-     * GET receiveNotification?receiveTimeout=N — следующее уведомление из очереди; `null` — очередь пуста.
-     * Это mutation, а не query: ответ нельзя кэшировать, а дедупликация одинаковых
-     * запросов помешала бы последовательному циклу опроса.
-     */
+    // mutation, а не query: ответ нельзя кэшировать и дедуплицировать
     receiveNotification: build.mutation<NotificationEnvelope | null, { receiveTimeout: number }>({
       query: ({ receiveTimeout }) => ({
         method: 'receiveNotification',
         tail: `?receiveTimeout=${receiveTimeout}`,
-        // У цикла опроса своя пауза между попытками — повторы внутри запроса ему не нужны.
+        // у цикла опроса свои паузы
         rateLimitRetries: 0,
       }),
       rawResponseSchema: notificationSchema,
-      // По документации ReceiveNotification отвечает 400, когда у инстанса задан webhookUrl:
-      // тогда уведомления уходят на вебхук, а очередь HTTP API недоступна.
+      // 400 здесь значит, что у инстанса задан webhookUrl
       transformErrorResponse: (error: GreenApiError): GreenApiError =>
         error.status === 400
           ? {
@@ -299,7 +247,6 @@ export const greenApi = createApi({
           : error,
     }),
 
-    /** DELETE deleteNotification/{receiptId} — подтверждение обработки уведомления. */
     deleteNotification: build.mutation<null, { receiptId: number }>({
       query: ({ receiptId }) => ({
         method: 'deleteNotification',

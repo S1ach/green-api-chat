@@ -9,12 +9,10 @@ interface Props {
   onSelect: (contact: SharedContact) => void;
 }
 
-/** Имя контакта для показа: из записной книжки, иначе номер, иначе chatId. */
 function displayName(contact: RemoteContact): string {
   return contact.name || (contact.phone !== null ? formatPhone(contact.phone) : contact.chatId);
 }
 
-/** Поиск по имени и по цифрам номера — в любом формате ввода. */
 function matches(contact: RemoteContact, query: string): boolean {
   const text = query.trim().toLowerCase();
   if (text === '') {
@@ -27,10 +25,7 @@ function matches(contact: RemoteContact, query: string): boolean {
   );
 }
 
-/**
- * Выбор контакта для SendContact. Поделиться можно только тем, кто есть в контактах
- * аккаунта MAX, поэтому список берётся из GetContacts, а не вводится вручную.
- */
+// SendContact принимает только контакты аккаунта, поэтому выбираем из GetContacts
 export function ContactPicker({ onSelect }: Props) {
   const { data: contacts, error, isFetching, refetch } = useGetContactsQuery();
   const [query, setQuery] = useState('');

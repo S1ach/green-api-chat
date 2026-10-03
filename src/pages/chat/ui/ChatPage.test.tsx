@@ -18,7 +18,7 @@ function chat(id: string, title: string): Chat {
   };
 }
 
-/** Состояние «новый компьютер»: чаты известны, сообщений в памяти нет. */
+// как на новом компьютере: чаты есть, сообщений в памяти нет
 const chatState: ChatState = {
   chats: { a: chat('a', 'Анна'), b: chat('b', 'Борис'), c: chat('c', 'Вера') },
   chatOrder: ['a', 'b', 'c'],

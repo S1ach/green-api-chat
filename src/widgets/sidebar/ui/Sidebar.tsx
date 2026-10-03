@@ -10,19 +10,16 @@ import { ChatList } from './ChatList';
 import { SidebarMenu } from './SidebarMenu';
 import styles from './Sidebar.module.scss';
 
-/** Боковая панель: подключённый инстанс, поиск, создание чата и список чатов. */
 export function Sidebar() {
   const dispatch = useAppDispatch();
   const idInstance = useAppSelector((state) => selectCredentials(state)?.idInstance);
   const chats = useAppSelector(selectChats);
   const activeChatId = useAppSelector((state) => selectActiveChat(state)?.id ?? null);
   const [isCreating, setIsCreating] = useState(false);
-  // Поисковый запрос нужен только сайдбару — это локальное состояние, а не Redux.
   const [query, setQuery] = useState('');
   const { isLoading } = useChatSync();
 
   const isSearching = query.trim() !== '';
-  // Стабильная ссылка: строки списка (memo) не перерисовываются при каждом обновлении панели.
   const handleSelect = useCallback((chatId: string) => dispatch(chatSelected(chatId)), [dispatch]);
 
   return (
@@ -45,7 +42,7 @@ export function Sidebar() {
       <ChatList
         chats={filterChats(chats, query)}
         activeChatId={activeChatId}
-        // Во время поиска пустой список — это «не найдено», а не «ещё загружается».
+        // при поиске пустой список — это «не найдено», а не загрузка
         isLoading={isLoading && !isSearching}
         emptyText={
           isSearching

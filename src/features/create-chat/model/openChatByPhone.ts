@@ -4,21 +4,14 @@ import { fallbackChatId, formatPhone } from '@/shared/lib/phone';
 import type { AppThunk } from '@/shared/lib/store';
 
 export type OpenChatResult =
-  /** Чат открыт; `warning` — оговорка, если номер проверить не удалось. */
   | { status: 'opened'; chatId: string; warning: string | null }
-  /** Номера нет в MAX — чат не создан. */
   | { status: 'notRegistered' }
   | { status: 'failed'; error: string };
 
-/** Ошибки, при которых нельзя подменять CheckAccount запасным chatId. */
+// при таких ошибках запасной chatId не подставляем
 const FATAL_CHECK_KINDS = new Set<ApiErrorKind>(['unauthorized', 'quota', 'rateLimit', 'network']);
 
-/**
- * Создаёт чат по номеру телефона (уже нормализованному — только цифры).
- * CheckAccount подтверждает, что номер есть в MAX, и отдаёт числовой chatId.
- * Если сам метод недоступен, чат создаётся по запасному chatId вида `номер@c.us`,
- * который SendMessage тоже принимает.
- */
+// CheckAccount недоступен — создаём чат по номер@c.us, SendMessage его тоже принимает
 export function openChatByPhone(phone: string): AppThunk<Promise<OpenChatResult>> {
   return async (dispatch, getState) => {
     const existing = selectChats(getState()).find((chat) => chat.phone === phone);

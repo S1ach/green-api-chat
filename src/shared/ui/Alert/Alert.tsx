@@ -6,13 +6,8 @@ import styles from './Alert.module.scss';
 const ICONS = { error: CircleAlert, warning: TriangleAlert, info: Info };
 
 interface Props {
-  /**
-   * `error` — действие не удалось; `warning` — приложение работает, но с оговоркой;
-   * `info` — нейтральное сообщение о том, что происходит.
-   */
   tone?: 'error' | 'warning' | 'info';
   children: ReactNode;
-  /** Кнопка действия справа: «Повторить», «Включить». */
   action?: ReactNode;
   className?: string;
 }

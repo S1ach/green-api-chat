@@ -6,9 +6,7 @@ import styles from './ChatList.module.scss';
 interface Props {
   chats: Chat[];
   activeChatId: string | null;
-  /** Список чатов ещё загружается с сервера. */
   isLoading: boolean;
-  /** Что показать вместо пустого списка. */
   emptyText: string;
   onSelect: (chatId: string) => void;
 }

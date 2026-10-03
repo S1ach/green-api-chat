@@ -4,7 +4,7 @@ import styles from './Avatar.module.scss';
 
 const GRADIENTS = ['red', 'orange', 'green', 'blue', 'purple'] as const;
 
-/** Один и тот же собеседник всегда получает один и тот же цвет. */
+// у одного собеседника всегда один цвет
 function gradientFor(seed: string): (typeof GRADIENTS)[number] {
   let hash = 0;
   for (const char of seed) {
@@ -13,7 +13,7 @@ function gradientFor(seed: string): (typeof GRADIENTS)[number] {
   return GRADIENTS[hash % GRADIENTS.length] ?? 'blue';
 }
 
-/** Инициалы: первые буквы слов имени, а для номера телефона — две последние цифры. */
+// для номера телефона — две последние цифры
 function initials(name: string): string {
   const words = name.match(/\p{L}+/gu);
   if (words && words.length > 0) {
@@ -27,26 +27,16 @@ function initials(name: string): string {
 }
 
 interface Props {
-  /** Имя — источник инициалов. */
   name: string;
-  /** Постоянный идентификатор — от него зависит цвет заглушки. */
   seed: string;
-  /** Ссылка на картинку; пустая строка — показать инициалы. */
   src?: string;
-  /** Значок вместо инициалов и картинки — для служебных чатов вроде «Избранного». */
   icon?: ReactNode;
-  /** Картинка по ссылке не открылась — можно запросить другую. */
   onError?: (src: string) => void;
   size?: number;
   className?: string;
 }
 
-/**
- * Аватар как в max-ui: круг с картинкой либо инициалы на фирменном градиенте.
- * Декоративный — имя собеседника всегда написано рядом.
- */
 export function Avatar({ name, seed, src = '', icon, onError, size = 48, className }: Props) {
-  // Ссылки на аватар живут недолго: запоминаем, какая именно перестала открываться.
   const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
   const style: CSSProperties = { width: size, height: size, fontSize: Math.round(size * 0.38) };
 

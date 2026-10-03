@@ -8,9 +8,7 @@ import { Chat } from '@/widgets/chat';
 import { Sidebar } from '@/widgets/sidebar';
 import styles from './ChatPage.module.scss';
 
-/** Плашки о состоянии связи с GREEN-API: что мешает получать сообщения и что с этим делать. */
 function ConnectionNotices() {
-  // Приём входящих живёт столько же, сколько страница: один цикл опроса на всю сессию.
   const polling = useNotificationPolling();
   const setup = useReceivingSetup();
   const retryInSeconds = useRateLimitCountdown();
@@ -63,7 +61,6 @@ export function ChatPage() {
   const activeChat = useAppSelector(selectActiveChat);
 
   return (
-    // На узком экране видно либо список чатов, либо переписку — см. data-view в стилях.
     <div className={styles.layout} data-view={activeChat === null ? 'list' : 'chat'}>
       <div className={styles.sidebar}>
         <Sidebar />
@@ -80,7 +77,7 @@ export function ChatPage() {
             </div>
           </div>
         ) : (
-          // key: у каждого чата своя прокрутка, свой черновик и своя глубина истории.
+          // key: у каждого чата свой скролл, черновик и глубина истории
           <Chat key={activeChat.id} chat={activeChat} />
         )}
       </main>

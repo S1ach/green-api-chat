@@ -10,7 +10,7 @@
 .list {
   @include mixins.thinScrollbar;
 
-  // Список прокручивается внутри окна; отрицательные поля выводят подсветку строки до его краёв.
+  // отрицательные поля — чтобы подсветка строки доходила до краёв окна
   min-height: 0;
   margin: 0 calc(-1 * var(--spacing-size-xl));
   padding: 0;
@@ -18,7 +18,6 @@
   list-style: none;
 }
 
-// Строка контакта — та же ячейка CellSimple, что и в списке чатов.
 .item {
   @include mixins.resetButton;
 

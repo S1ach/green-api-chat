@@ -5,25 +5,19 @@ import { getApiErrorMessage, greenApi, isAbortError, useGetChatsQuery } from '@/
 import { devLog } from '@/shared/lib/devLog';
 import { useAppDispatch, type AppThunk } from '@/shared/lib/store';
 
-/** При входе берём сообщения за сутки — это значение журналов по умолчанию. */
+// сутки — дефолт журналов
 const INITIAL_WINDOW_MINUTES = 1440;
-/** Как часто сверяться с журналами, пока приложение открыто. */
 const RESYNC_INTERVAL_MS = 30_000;
-/** Окно сверки шире интервала: сообщение попадает в журнал не мгновенно. */
+// окно шире интервала: в журнал сообщение попадает не сразу
 const RESYNC_WINDOW_MINUTES = 10;
 
 function warnUnavailable(journal: string, error: unknown): void {
-  // Отмена при выходе из инстанса — штатная ситуация, а не сбой журнала.
   if (!isAbortError(error)) {
     console.warn(`[ChatSync] Журнал ${journal} недоступен:`, getApiErrorMessage(error));
   }
 }
 
-/**
- * Последние сообщения всех чатов из журналов LastIncomingMessages и LastOutgoingMessages:
- * два запроса на весь аккаунт вместо запроса истории на каждый чат.
- * Сбой одного журнала не отменяет результат другого.
- */
+// два запроса на весь аккаунт вместо истории по каждому чату
 function loadJournals(minutes: number): AppThunk<Promise<ReceivedMessage[]>> {
   return async (dispatch) => {
     const options = { track: false } as const;
@@ -47,17 +41,8 @@ function loadJournals(minutes: number): AppThunk<Promise<ReceivedMessage[]>> {
   };
 }
 
-/**
- * Синхронизация списка чатов и сообщений с сервером.
- *
- * - Список чатов — из GetChats, как в консоли GREEN-API: он есть и на новом компьютере.
- * - Последние сообщения и превью — из журналов за сутки, одним проходом на все чаты.
- * - Пока приложение открыто, журналы перечитываются раз в 30 секунд. Основной канал
- *   новых сообщений — очередь уведомлений; сверка страхует случаи, когда уведомление
- *   не дошло: его забрал другой клиент или инстанс не кладёт входящие в очередь.
- *   Дубли отсекаются по idMessage, поэтому лишняя сверка ничего не меняет.
- * - В скрытой вкладке сверка не идёт и выполняется сразу при возвращении.
- */
+// очередь уведомлений может что-то потерять (забрал другой клиент, выключена настройка),
+// поэтому раз в 30 секунд сверяемся с журналами. Дубли отсекаются по idMessage
 export function useChatSync(): { isLoading: boolean } {
   const dispatch = useAppDispatch();
   const { currentData: remoteChats, error, isLoading } = useGetChatsQuery();
@@ -76,7 +61,6 @@ export function useChatSync(): { isLoading: boolean } {
   }, [remoteChats, dispatch]);
 
   useEffect(() => {
-    // Флаг вместо отмены запросов: после выхода или смены инстанса ответы просто игнорируются.
     let stopped = false;
     let running = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -116,7 +100,7 @@ export function useChatSync(): { isLoading: boolean } {
       }
     };
 
-    // Первая загрузка непрочитанные не считает: неизвестно, что пользователь уже видел.
+    // при первой загрузке непрочитанные не считаем
     void sync(INITIAL_WINDOW_MINUTES, false);
     document.addEventListener('visibilitychange', handleVisibility);
 

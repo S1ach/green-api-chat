@@ -7,7 +7,6 @@ import { connectInstance } from '../model/connectInstance';
 import { credentialsSchema, type CredentialsFormValues } from '../model/credentialsSchema';
 import styles from './CredentialsForm.module.scss';
 
-/** Форма подключения инстанса GREEN-API: данные вводит пользователь, в коде их нет. */
 export function CredentialsForm() {
   const dispatch = useAppDispatch();
   const {
@@ -21,8 +20,7 @@ export function CredentialsForm() {
   });
 
   const onSubmit = handleSubmit(async ({ mediaUrl, ...credentials }) => {
-    // При успехе форма размонтируется: приложение переходит к чатам.
-    // Пустой mediaUrl не сохраняем: без него файлы отправляются через apiUrl.
+    // пустой mediaUrl не сохраняем
     const result = await dispatch(
       connectInstance(mediaUrl === '' ? credentials : { ...credentials, mediaUrl }),
     );

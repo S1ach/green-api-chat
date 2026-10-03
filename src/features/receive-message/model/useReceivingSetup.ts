@@ -7,18 +7,16 @@ import {
 
 interface SettingsProblem {
   message: string;
-  /** Приложение может исправить настройку само, методом SetSettings. */
   canFix: boolean;
 }
 
-/** Что в настройках инстанса мешает приёму через ReceiveNotification; `null` — всё в порядке. */
 export function settingsProblem(settings: InstanceSettings): SettingsProblem | null {
   if (settings.webhookUrl.trim() !== '') {
     return {
       message:
         'В настройках инстанса задан webhookUrl — уведомления уходят на вебхук, а не в очередь HTTP API. ' +
         'Очистите поле webhookUrl в консоли GREEN-API.',
-      // Адрес вебхука мог быть задан намеренно — молча его не стираем.
+      // webhookUrl могли задать намеренно, сами не трогаем
       canFix: false,
     };
   }
@@ -34,21 +32,13 @@ export function settingsProblem(settings: InstanceSettings): SettingsProblem | n
 }
 
 interface ReceivingSetup {
-  /** Что мешает приёму сообщений; `null` — всё в порядке или настройки ещё не получены. */
   problem: SettingsProblem | null;
-  /** Включает уведомления, нужные приложению. */
   fix: () => void;
   isFixing: boolean;
   fixError: string | null;
-  /** Настройки только что сохранены: инстанс перезапускается и применяет их. */
   isApplying: boolean;
 }
 
-/**
- * Входящие не придут, если инстанс настроен на вебхук или не отдаёт входящие в очередь.
- * Проверяем это после входа, прямо говорим, что дело в настройках, и предлагаем включить
- * нужные уведомления: о входящих, о сообщениях с телефона и о статусах доставки.
- */
 export function useReceivingSetup(): ReceivingSetup {
   const { data: settings } = useGetSettingsQuery();
   const [setSettings, { isLoading, isSuccess, error }] = useSetSettingsMutation();

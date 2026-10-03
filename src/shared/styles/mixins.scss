@@ -1,4 +1,4 @@
-// Типографика MAX (max-ui: src/styles/shared-mixins/typography.scss) и общие приёмы вёрстки.
+// типографика из max-ui
 
 @mixin text($name, $weight: 400) {
   font-size: var(--font-size-#{$name});
@@ -74,7 +74,7 @@
   white-space: nowrap;
 }
 
-// Подсветка при наведении только там, где есть мышь, — как в max-ui (Tappable).
+// hover только там, где есть мышь
 @mixin hover {
   @media (hover: hover) and (pointer: fine) {
     &:hover {

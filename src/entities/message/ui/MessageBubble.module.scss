@@ -5,7 +5,6 @@ $tail-radius: 6px;
 .message {
   display: flex;
   flex-direction: column;
-  // Внутри серии сообщения стоят вплотную, между сериями — заметный отступ.
   margin-bottom: var(--spacing-size2xs);
 }
 
@@ -25,7 +24,6 @@ $tail-radius: 6px;
   max-width: min(78%, 560px);
   padding: var(--spacing-size-m) var(--spacing-size-xl);
   border-radius: var(--size-border-radius-card);
-  // Лёгкая тень отделяет сообщение от узора фона.
   box-shadow: 0 1px 1px rgb(0 0 0 / 0.1);
 
   .incoming & {
@@ -157,7 +155,6 @@ a.attachment .attachmentLabel {
   margin: var(--spacing-size-xs) 0 0;
   padding: var(--spacing-size-xs) var(--spacing-size-m);
   border-radius: var(--size-border-radius-action-small);
-  // Строка лежит на фоне переписки — ей нужна своя подложка.
   background-color: var(--chat-chip-background);
   color: var(--text-negative);
 

@@ -16,14 +16,12 @@ import {
 import { getApiErrorMessage, greenApi } from '@/shared/api';
 import type { AppThunk } from '@/shared/lib/store';
 
-/** Что именно отправляется — от этого зависит метод GREEN-API. */
 type Outgoing =
   | { type: 'text'; text: string }
   | { type: 'file'; file: File; caption: string }
   | { type: 'location'; latitude: number; longitude: number }
   | { type: 'contact'; contactChatId: string };
 
-/** Контакт, которым делятся: chatId из GetContacts и имя для показа в ленте. */
 export interface SharedContact {
   chatId: string;
   name: string;
@@ -34,16 +32,11 @@ export interface Coordinates {
   longitude: number;
 }
 
-/**
- * Вложения сообщений, которые ещё не отправлены, — чтобы повторить отправку после ошибки.
- * Хранятся вне Redux: `File` не сериализуется и не переживает перезагрузку страницы.
- * Ключ — временный идентификатор сообщения.
- */
+// вложения неотправленных сообщений — для повтора. File в Redux не положишь
 const outbox = new Map<string, Outgoing>();
 
 let sequence = 0;
 
-/** Временный идентификатор сообщения до ответа GREEN-API. */
 function createLocalId(): string {
   sequence += 1;
   return `local-${Date.now().toString(36)}-${sequence.toString(36)}`;
@@ -51,11 +44,9 @@ function createLocalId(): string {
 
 interface Sent {
   idMessage: string;
-  /** Ссылка на загруженный файл — только у SendFileByUpload. */
   fileUrl?: string | null;
 }
 
-/** Вызывает метод GREEN-API, которым отправляется такое сообщение. */
 function request(chatId: string, outgoing: Outgoing): AppThunk<Promise<Sent>> {
   return async (dispatch) => {
     const options = { track: false } as const;
@@ -89,7 +80,6 @@ function request(chatId: string, outgoing: Outgoing): AppThunk<Promise<Sent>> {
   };
 }
 
-/** Отправляет сообщение и переводит его в «отправлено» либо в «ошибку». */
 function deliver(chatId: string, localId: string, outgoing: Outgoing): AppThunk<Promise<void>> {
   return async (dispatch) => {
     try {
@@ -102,11 +92,6 @@ function deliver(chatId: string, localId: string, outgoing: Outgoing): AppThunk<
   };
 }
 
-/**
- * Сообщение сразу появляется в чате со статусом «отправляется»; после ответа API его
- * временный идентификатор заменяется на idMessage — так оно не показывается второй раз,
- * когда то же сообщение приходит из истории или очереди уведомлений.
- */
 function enqueue(
   chatId: string,
   outgoing: Outgoing,
@@ -114,7 +99,6 @@ function enqueue(
 ): AppThunk<Promise<void>> {
   return (dispatch) => {
     const localId = createLocalId();
-    // Текст для повтора есть в самом сообщении, вложение — только здесь.
     if (outgoing.type !== 'text') {
       outbox.set(localId, outgoing);
     }
@@ -132,12 +116,10 @@ function enqueue(
   };
 }
 
-/** Текстовое сообщение — SendMessage. */
 export function sendTextMessage(chatId: string, text: string): AppThunk<Promise<void>> {
   return enqueue(chatId, { type: 'text', text }, { text });
 }
 
-/** Файл с диска и подпись к нему — SendFileByUpload. */
 export function sendFileMessage(
   chatId: string,
   file: File,
@@ -146,7 +128,6 @@ export function sendFileMessage(
   return enqueue(
     chatId,
     { type: 'file', file, caption },
-    // Ссылка появится в ответе API; какой это тип сообщения, MAX решит сам — история уточнит.
     {
       text: caption,
       attachment: { kind: attachmentKindOfFile(file.type), url: null, name: file.name },
@@ -154,7 +135,6 @@ export function sendFileMessage(
   );
 }
 
-/** Геопозиция — SendLocation. */
 export function sendLocationMessage(
   chatId: string,
   { latitude, longitude }: Coordinates,
@@ -166,7 +146,6 @@ export function sendLocationMessage(
   );
 }
 
-/** Контакт из списка контактов инстанса — SendContact. */
 export function sendContactMessage(
   chatId: string,
   contact: SharedContact,
@@ -178,7 +157,6 @@ export function sendContactMessage(
   );
 }
 
-/** Повторная отправка сообщения, которое не ушло. */
 export function retryMessage(chatId: string, messageId: string): AppThunk<Promise<void>> {
   return (dispatch, getState) => {
     const message = selectMessages(getState(), chatId).find(({ id }) => id === messageId);
@@ -189,7 +167,7 @@ export function retryMessage(chatId: string, messageId: string): AppThunk<Promis
       outbox.get(messageId) ??
       (message.attachment === undefined ? { type: 'text', text: message.text } : undefined);
     if (outgoing === undefined) {
-      // Страницу перезагрузили: сообщение восстановлено из кэша, а само вложение — нет.
+      // после перезагрузки страницы вложения уже нет
       dispatch(
         messageSendFailed({
           chatId,
@@ -204,7 +182,6 @@ export function retryMessage(chatId: string, messageId: string): AppThunk<Promis
   };
 }
 
-/** Пользователь убрал неотправленное сообщение: вместе с ним забываем и его вложение. */
 export function discardMessage(chatId: string, messageId: string): AppThunk {
   return (dispatch) => {
     outbox.delete(messageId);

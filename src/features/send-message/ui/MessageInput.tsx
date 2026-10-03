@@ -28,18 +28,11 @@ interface Props {
   chatId: string;
 }
 
-/** Показываем счётчик, когда до лимита остаётся меньше 200 символов. */
 const COUNTER_THRESHOLD = MAX_MESSAGE_LENGTH - 200;
-/** Поле растёт вместе с текстом до этой высоты, дальше появляется прокрутка. */
 const MAX_HEIGHT_PX = 160;
 
-/**
- * Поле ввода сообщения: Enter отправляет, Shift+Enter переносит строку.
- * Через скрепку отправляются файл (текст из поля становится подписью), контакт и геопозиция.
- */
 export function MessageInput({ chatId }: Props) {
   const dispatch = useAppDispatch();
-  // Черновик — локальное состояние компонента: больше он никому не нужен.
   const [text, setText] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -50,7 +43,6 @@ export function MessageInput({ chatId }: Props) {
   const trimmed = text.trim();
   const canSend = trimmed !== '' || file !== null;
 
-  // Высота поля подстраивается под текст.
   useLayoutEffect(() => {
     const input = inputRef.current;
     if (input !== null) {
@@ -63,8 +55,7 @@ export function MessageInput({ chatId }: Props) {
     if (!canSend) {
       return;
     }
-    // Поле очищается сразу, поэтому повторное нажатие не отправит то же сообщение ещё раз.
-    // Само сообщение уже в ленте: со статусом «отправляется», а при ошибке — с кнопкой повтора.
+    // поле чистим сразу, чтобы двойной Enter не отправил дважды
     if (file !== null) {
       void dispatch(sendFileMessage(chatId, file, trimmed));
     } else {
@@ -81,7 +72,7 @@ export function MessageInput({ chatId }: Props) {
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    // isComposing: Enter, которым подтверждают ввод в IME, сообщение не отправляет.
+    // Enter в IME не отправляет
     if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       submit();
@@ -90,7 +81,7 @@ export function MessageInput({ chatId }: Props) {
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const picked = event.target.files?.[0];
-    // Значение сбрасываем, чтобы тот же файл можно было выбрать ещё раз.
+    // иначе тот же файл нельзя выбрать повторно
     event.target.value = '';
     if (picked === undefined) {
       return;
@@ -140,7 +131,6 @@ export function MessageInput({ chatId }: Props) {
           onContact={() => setDialog('contact')}
           onLocation={() => setDialog('location')}
         />
-        {/* Скрытое поле выбора файла: его открывает пункт меню «Файл». */}
         <input
           ref={fileInputRef}
           className={styles.fileInput}

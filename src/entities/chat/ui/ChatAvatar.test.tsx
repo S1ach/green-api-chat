@@ -12,7 +12,6 @@ const CHAT_ID = '10000001';
 
 let api: ReturnType<typeof mockGreenApi>;
 
-/** Аватар чата из store — так его получают список чатов и шапка. */
 function StoredChatAvatar() {
   const chat = useAppSelector((state) => state.chat.chats[CHAT_ID]);
   return chat ? <ChatAvatar chat={chat} /> : null;

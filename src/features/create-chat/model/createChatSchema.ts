@@ -1,10 +1,6 @@
 import { z } from 'zod';
 import { normalizePhone } from '@/shared/lib/phone';
 
-/**
- * Номер вводят как угодно: `+7 999 123-45-67`, `8 (999) 123-45-67`, `79991234567`.
- * Схема сразу приводит его к виду GREEN-API (только цифры) — дальше работает один формат.
- */
 export const createChatSchema = z.object({
   phone: z
     .string()

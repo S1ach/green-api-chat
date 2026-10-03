@@ -16,7 +16,6 @@
   gap: var(--spacing-size-m);
 }
 
-// Выбранный файл ждёт отправки: показываем его над полем, текст в поле станет подписью.
 .file {
   display: flex;
   align-items: center;
@@ -55,7 +54,6 @@
   color: var(--text-negative);
 }
 
-// Поле выбора файла не показываем: диалог открывается из меню скрепки.
 .fileInput {
   position: absolute;
   width: 1px;
@@ -65,7 +63,6 @@
   white-space: nowrap;
 }
 
-// Контейнер с заливкой — как Textarea в max-ui (режим secondary).
 .field {
   display: flex;
   flex: 1;

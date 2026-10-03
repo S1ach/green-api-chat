@@ -1,6 +1,5 @@
 @use '@/shared/styles/mixins';
 
-// Поле поиска — Input из max-ui: высота 40, заливка без рамки, иконка слева.
 .search {
   position: relative;
   margin: 0 var(--spacing-size-xl) var(--spacing-size-m);
@@ -37,7 +36,7 @@
     box-shadow: inset 0 0 0 1.5px var(--button-primary);
   }
 
-  // Очистку делает своя кнопка — прячем встроенный крестик браузера.
+  // прячем встроенный крестик браузера
   &::-webkit-search-cancel-button {
     display: none;
   }

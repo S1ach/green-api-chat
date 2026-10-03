@@ -3,12 +3,10 @@ import type { ReactNode } from 'react';
 import styles from './Menu.module.scss';
 
 interface MenuProps {
-  /** Расположение меню относительно кнопки задаёт тот, кто его открывает. */
   className?: string;
   children: ReactNode;
 }
 
-/** Всплывающее меню действий: поверхность с тенью и список пунктов. */
 export function Menu({ className, children }: MenuProps) {
   return (
     <ul className={clsx(styles.menu, className)} role="menu">
@@ -19,7 +17,6 @@ export function Menu({ className, children }: MenuProps) {
 
 interface MenuItemProps {
   icon: ReactNode;
-  /** `danger` — действие, которое нельзя отменить (выход). */
   tone?: 'default' | 'danger';
   onClick: () => void;
   children: ReactNode;

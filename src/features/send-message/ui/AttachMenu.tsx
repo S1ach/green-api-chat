@@ -9,7 +9,6 @@ interface Props {
   onLocation: () => void;
 }
 
-/** Скрепка у поля ввода: меню с тем, что можно отправить кроме текста. */
 export function AttachMenu({ onFile, onContact, onLocation }: Props) {
   const { isOpen, rootRef, toggle, close } = usePopup<HTMLDivElement>();
 

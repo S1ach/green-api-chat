@@ -1,5 +1,3 @@
-/** Обёртки над localStorage: любые ошибки (приватный режим, квота) не должны ломать приложение. */
-
 export function loadJson<T>(key: string): T | null {
   try {
     const raw = localStorage.getItem(key);
@@ -13,7 +11,7 @@ export function saveJson(key: string, value: unknown): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    // Хранилище недоступно — работаем без persistence.
+    // localStorage недоступен — живём без него
   }
 }
 
@@ -21,6 +19,6 @@ export function removeKey(key: string): void {
   try {
     localStorage.removeItem(key);
   } catch {
-    // Игнорируем: удалять нечего или хранилище недоступно.
+    // не страшно
   }
 }

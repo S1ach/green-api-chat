@@ -5,29 +5,23 @@ import {
   type FetchBaseQueryMeta,
 } from '@reduxjs/toolkit/query';
 import { devLog } from '@/shared/lib/devLog';
+import { sleep } from '@/shared/lib/sleep';
 import { httpError, networkError, unexpectedResponseError, type GreenApiError } from './errors';
-import { postponeMethod, waitBeforeRetry, waitForSlot } from './rateLimiter';
+import { postponeMethod, waitForSlot } from './rateLimiter';
 import { rateLimited } from './rateLimitSlice';
 import type { Credentials } from './types';
 
-/** Описание вызова GREEN-API: его возвращают `query` в endpoints. */
 export interface GreenApiRequest {
-  /** Имя метода: `sendMessage`, `receiveNotification`… */
   method: string;
   httpMethod?: 'GET' | 'POST' | 'DELETE';
-  /** JSON-тело либо форма multipart/form-data (отправка файла). */
   body?: Record<string, unknown> | FormData;
-  /** `media` — хост для отправки файлов (mediaUrl); по умолчанию apiUrl. */
   host?: 'api' | 'media';
-  /** Хвост URL после токена: `/{receiptId}` или `?receiveTimeout=5`. */
+  // то, что идёт после токена: /{receiptId} или ?receiveTimeout=5
   tail?: string;
-  /** Учётные данные для запроса до входа (getStateInstance); по умолчанию берутся из store. */
   credentials?: Credentials;
-  /** Сколько раз повторить запрос после ответа 429; по умолчанию `RATE_LIMIT_RETRIES`. */
   rateLimitRetries?: number;
 }
 
-/** Повторов после 429 немного и они конечны: дальше ошибку получает вызывающий код. */
 const RATE_LIMIT_RETRIES = 3;
 const BASE_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 15_000;
@@ -38,7 +32,7 @@ const NO_SESSION_ERROR: GreenApiError = {
 };
 
 function buildUrl(credentials: Credentials, { method, host, tail = '' }: GreenApiRequest): string {
-  // mediaUrl необязателен: без него файлы уходят через apiUrl — метод доступен и там.
+  // mediaUrl может быть не задан, тогда шлём на apiUrl
   const hostUrl = (host === 'media' && credentials.mediaUrl) || credentials.apiUrl;
   const base = hostUrl.trim().replace(/\/+$/, '');
   return `${base}/waInstance${credentials.idInstance}/${method}/${credentials.apiTokenInstance}${tail}`;
@@ -60,10 +54,10 @@ function isRateLimited(error: FetchBaseQueryError): boolean {
   return error.status === 429 || (error.status === 'PARSING_ERROR' && error.originalStatus === 429);
 }
 
-/** Пауза из заголовка `Retry-After` (секунды или HTTP-дата); `null`, если сервер его не прислал. */
+// Retry-After бывает в секундах или датой
 function retryAfterMs(meta: FetchBaseQueryMeta | undefined): number | null {
   const header = meta?.response?.headers.get('Retry-After');
-  if (header === null || header === undefined || header.trim() === '') {
+  if (!header?.trim()) {
     return null;
   }
   const seconds = Number(header);
@@ -74,29 +68,18 @@ function retryAfterMs(meta: FetchBaseQueryMeta | undefined): number | null {
   return Number.isNaN(date) ? null : Math.max(0, date - Date.now());
 }
 
-/** Экспоненциальная пауза 1 → 2 → 4 с и случайная добавка, чтобы повторы не шли залпом. */
+// 1 → 2 → 4 с плюс джиттер
 function backoffMs(attempt: number): number {
   return BASE_RETRY_DELAY_MS * 2 ** attempt + Math.round(Math.random() * 250);
 }
 
 const rawBaseQuery = fetchBaseQuery();
 
-/**
- * Единая точка сетевых вызовов GREEN-API.
- *
- * - Учётные данные — часть URL, поэтому адрес собирается здесь: endpoints и UI про токен не знают.
- * - Перед запросом метод ждёт свой слот: лимиты GREEN-API считаются на метод, и запросы
- *   из разных частей приложения не должны сталкиваться.
- * - Ответ 429 не считается ошибкой сразу: запрос повторяется после паузы (`Retry-After`
- *   или экспоненциальная), ограниченное число раз.
- * - Ошибки fetch приводятся к `GreenApiError` с текстом для пользователя.
- */
 export const baseQuery: BaseQueryFn<GreenApiRequest, unknown, GreenApiError> = async (
   request,
   api,
   extraOptions,
 ) => {
-  // `RootState` объявлен глобально в app/providers/store — слой shared не импортирует store.
   const credentials = request.credentials ?? (api.getState() as RootState).session.credentials;
   if (credentials === null) {
     return { error: NO_SESSION_ERROR };
@@ -125,11 +108,11 @@ export const baseQuery: BaseQueryFn<GreenApiRequest, unknown, GreenApiError> = a
       devLog('API', `${request.method}: rate limited, retry after ${Math.ceil(delay / 1000)}s`);
       postponeMethod(idInstance, request.method, delay);
       api.dispatch(rateLimited(Date.now() + delay));
-      await waitBeforeRetry(delay, api.signal);
+      await sleep(delay, api.signal);
       continue;
     }
 
-    // URL не логируем: в нём apiTokenInstance. Имени метода достаточно для диагностики.
+    // URL не логируем, в нём токен
     devLog('API', `${request.method}: ошибка`, result.error.status);
     return { error: toGreenApiError(result.error) };
   }

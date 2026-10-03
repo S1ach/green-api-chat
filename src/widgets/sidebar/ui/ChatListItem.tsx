@@ -11,7 +11,6 @@ interface Props {
   onSelect: (chatId: string) => void;
 }
 
-/** Строка списка чатов: аватар, имя, последнее сообщение, время и число непрочитанных. */
 export const ChatListItem = memo(function ChatListItem({ chat, isActive, onSelect }: Props) {
   return (
     <li>

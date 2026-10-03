@@ -3,13 +3,8 @@ import { fileURLToPath, URL } from 'node:url';
 import { defineConfig, type ProxyOptions } from 'vite';
 import react from '@vitejs/plugin-react';
 
-/**
- * GREEN-API отдаёт `Access-Control-Allow-Origin: *` и разрешает preflight для POST/DELETE,
- * поэтому по умолчанию браузер ходит в API напрямую и прокси не нужен.
- *
- * Прокси — запасной вариант (корпоративный фильтр, блокирующее расширение и т.п.):
- * запустите `VITE_USE_PROXY=1 npm run dev` и укажите в форме входа apiUrl = `/green-api`.
- */
+// прокси на случай, если запросы к API режет сеть или расширение:
+// VITE_USE_PROXY=1 npm run dev, в форме входа apiUrl = /green-api
 const useProxy = process.env.VITE_USE_PROXY === '1';
 const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'https://api.green-api.com';
 
@@ -25,13 +20,12 @@ const proxy: Record<string, ProxyOptions> = {
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    // Алиас слоёв FSD: `@/shared/...`, `@/entities/...` и т.д.
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   css: {
     preprocessorOptions: { scss: { api: 'modern-compiler' } },
   },
-  // Для GitHub Pages: VITE_BASE=/green-api-max-chat/ npm run build
+  // GitHub Pages живёт в подкаталоге, base приходит из VITE_BASE
   base: process.env.VITE_BASE ?? '/',
   server: useProxy ? { proxy } : {},
   test: {

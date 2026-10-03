@@ -36,7 +36,6 @@ function setup() {
   const input = screen.getByRole('textbox', { name: 'Текст сообщения' });
   const sendButton = screen.getByRole('button', { name: 'Отправить' });
   const messages = () => selectMessages(store.getState(), CHAT_ID);
-  /** Открывает меню скрепки и выбирает пункт. */
   const attach = async (item: 'Файл' | 'Контакт' | 'Геопозиция') => {
     await user.click(screen.getByRole('button', { name: 'Прикрепить' }));
     await user.click(screen.getByRole('menuitem', { name: item }));

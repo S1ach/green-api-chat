@@ -25,7 +25,7 @@ body,
 body {
   margin: 0;
   background: var(--background-surface);
-  // Раскладка занимает ровно экран: прокручиваются списки, а не страница.
+  // скроллятся списки, а не страница
   overflow: hidden;
 }
 

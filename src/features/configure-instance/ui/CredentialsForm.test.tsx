@@ -10,7 +10,6 @@ let api: ReturnType<typeof mockGreenApi>;
 
 function setup() {
   const user = userEvent.setup();
-  // Пустое состояние: пользователь ещё не вошёл.
   const { store } = renderWithStore(<CredentialsForm />, { preloadedState: {} });
   return {
     user,

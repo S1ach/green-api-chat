@@ -242,7 +242,6 @@ describe('chatSlice: сверка по журналам', () => {
       messagesSynced({ received: [journal('a', 100), journal('b', 200)], countUnread: false }),
     );
 
-    // Сверху чат с более свежим сообщением.
     expect(state.chatOrder).toEqual(['b', 'a']);
     expect(state.chats['b']).toMatchObject({ lastPreview: 'из b', title: 'B', unreadCount: 0 });
   });

@@ -6,12 +6,10 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
 
-/** Слои Feature-Sliced Design сверху вниз: импортировать можно только нижележащие. */
+// сверху вниз: импортировать можно только нижние слои
 const LAYERS = ['app', 'pages', 'widgets', 'features', 'entities', 'shared'];
-/** Слои, поделённые на слайсы; у каждого слайса есть публичный API — index.ts. */
 const SLICED_LAYERS = ['pages', 'widgets', 'features', 'entities'];
 
-/** Правила границ FSD для файлов одного слоя. Внутри слайса импорты относительные. */
 function layerBoundaries(layer) {
   const upperLayers = LAYERS.slice(0, LAYERS.indexOf(layer));
   const patterns = [
@@ -41,7 +39,7 @@ function layerBoundaries(layer) {
 
   return {
     files: [`src/${layer}/**/*.{ts,tsx}`],
-    // Тестам нужен настоящий store приложения и тестовые утилиты.
+    // тестам можно всё
     ignores: ['**/*.test.{ts,tsx}'],
     rules: { 'no-restricted-imports': ['error', { patterns }] },
   };
@@ -73,7 +71,6 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-      // Пропсы описаны типами TypeScript.
       'react/prop-types': 'off',
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': 'error',

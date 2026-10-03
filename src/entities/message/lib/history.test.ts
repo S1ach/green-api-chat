@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Message } from '../model/types';
 import { mergeMessages, normalizeHistory, normalizeJournal } from './history';
 
-/** Фрагмент ответа GetChatHistory по документации MAX: новые сверху. */
+// кусок ответа GetChatHistory, новые сверху
 const historyResponse = [
   {
     type: 'incoming',

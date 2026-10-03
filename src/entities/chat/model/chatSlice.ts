@@ -11,13 +11,8 @@ import { isSameChat } from '@/shared/lib/chatId';
 import { formatPhone, phoneFromChatId } from '@/shared/lib/phone';
 import type { Chat } from './types';
 
-/**
- * Чаты и их сообщения. Данные приходят из нескольких источников — GetChats, GetChatHistory,
- * журналы, очередь уведомлений и отправка, — поэтому сводятся здесь в один список без дублей.
- */
 export interface ChatState {
   chats: Record<string, Chat>;
-  /** Порядок чатов: свежие сверху. */
   chatOrder: string[];
   messages: Record<string, Message[]>;
   activeChatId: string | null;
@@ -42,11 +37,7 @@ function titleFor(phone: string | null, chatId: string): string {
   return phone !== null ? formatPhone(phone) : chatId;
 }
 
-/**
- * Ищет чат, которому принадлежит сообщение.
- * chatId бывает числовым (MAX) или вида "номер@c.us",
- * поэтому сверяем и по id, и по сохранённому номеру.
- */
+// chatId бывает числовым или вида номер@c.us, поэтому ищем и по id, и по номеру
 export function resolveChatId(
   state: ChatState,
   chatId: string,
@@ -66,7 +57,6 @@ export function resolveChatId(
   return state.chatOrder.find((id) => state.chats[id]?.phone === knownPhone) ?? null;
 }
 
-/** Как в мессенджере: сверху чаты с самыми свежими сообщениями (сортировка стабильная). */
 function sortChats(state: ChatState): void {
   const sorted = [...state.chatOrder].sort(
     (a, b) => (state.chats[b]?.lastActivity ?? 0) - (state.chats[a]?.lastActivity ?? 0),
@@ -76,7 +66,6 @@ function sortChats(state: ChatState): void {
   }
 }
 
-/** Превью и время чата всегда выводятся из его последнего сообщения. */
 function summarize(state: ChatState, chatId: string): void {
   const chat = state.chats[chatId];
   const list = state.messages[chatId];
@@ -89,12 +78,7 @@ function summarize(state: ChatState, chatId: string): void {
   sortChats(state);
 }
 
-/**
- * Кладёт сообщение из GREEN-API (уведомление или журнал) в нужный чат.
- * Чата ещё нет — создаёт его. Уже известное сообщение не дублируется, но может
- * обновить статус. `countUnread` выключают при первоначальной загрузке: тогда
- * неизвестно, какие из сообщений пользователь уже видел.
- */
+// countUnread выключен при первой загрузке: непонятно, что пользователь уже видел
 function applyReceived(state: ChatState, received: ReceivedMessage, countUnread: boolean): void {
   const { message, chat: hint } = received;
   const phone = hint.phone ?? phoneFromChatId(message.chatId);
@@ -131,10 +115,8 @@ const chatSlice = createSlice({
   name: 'chat',
   initialState: initialChatState,
   reducers: {
-    /** Чаты инстанса, сохранённые в localStorage в прошлый раз. */
     chatsRestored: (_state, action: PayloadAction<ChatState>) => action.payload,
 
-    /** Пользователь создал чат по номеру (или открыл уже существующий). */
     chatOpened: {
       prepare: (payload: { chatId: string; phone: string | null; title?: string }) => ({
         payload: { ...payload, openedAt: Date.now() },
@@ -170,7 +152,6 @@ const chatSlice = createSlice({
       },
     },
 
-    /** Выбор чата в списке; `null` — закрыть открытый чат. */
     chatSelected(state, action: PayloadAction<string | null>) {
       const chatId = action.payload;
       if (chatId === null) {
@@ -185,10 +166,7 @@ const chatSlice = createSlice({
       chat.unreadCount = 0;
     },
 
-    /**
-     * Список чатов из GetChats дополняет локальный: уже известные (в том числе созданные
-     * по запасному chatId "номер@c.us") не дублируем, а лишь уточняем имя и номер.
-     */
+    // чаты из GetChats не дублируем, только уточняем имя и номер
     chatsLoaded(state, action: PayloadAction<RemoteChat[]>) {
       for (const remote of action.payload) {
         const knownId = resolveChatId(state, remote.chatId, remote.phone);
@@ -212,10 +190,7 @@ const chatSlice = createSlice({
       }
     },
 
-    /**
-     * Аватар чата запрошен. `url: null` — запрос не удался: прежняя ссылка остаётся,
-     * меняется только время следующей попытки.
-     */
+    // url: null — запрос не удался, старая ссылка остаётся
     avatarChecked(
       state,
       action: PayloadAction<{ chatId: string; url: string | null; refreshAt: number }>,
@@ -227,7 +202,6 @@ const chatSlice = createSlice({
       }
     },
 
-    /** Сообщения чата из GetChatHistory: дополняют уже известные, ничего не затирая. */
     historyLoaded(state, action: PayloadAction<{ chatId: string; messages: Message[] }>) {
       const { chatId, messages } = action.payload;
       if (!state.chats[chatId]) {
@@ -237,12 +211,10 @@ const chatSlice = createSlice({
       summarize(state, chatId);
     },
 
-    /** Новое сообщение из очереди уведомлений: входящее либо отправленное с другого устройства. */
     messageReceived(state, action: PayloadAction<ReceivedMessage>) {
       applyReceived(state, action.payload, true);
     },
 
-    /** Сообщения разных чатов из журналов: первоначальная загрузка и страховочная сверка. */
     messagesSynced(
       state,
       action: PayloadAction<{ received: ReceivedMessage[]; countUnread: boolean }>,
@@ -252,7 +224,6 @@ const chatSlice = createSlice({
       }
     },
 
-    /** Изменился статус отправленного сообщения (доставлено, прочитано, не доставлено). */
     messageStatusChanged(
       state,
       action: PayloadAction<{
@@ -279,11 +250,10 @@ const chatSlice = createSlice({
         }
         return;
       }
-      // Слияние повышает статус, но не понижает: «прочитано» не станет «доставлено».
+      // статус только повышается
       state.messages[chatId] = mergeMessages(list, [{ ...message, status }]);
     },
 
-    /** Пользователь отправил сообщение: оно сразу появляется в чате со статусом «отправляется». */
     messageQueued(state, action: PayloadAction<Message>) {
       const message = action.payload;
       if (!state.chats[message.chatId]) {
@@ -296,11 +266,7 @@ const chatSlice = createSlice({
       summarize(state, message.chatId);
     },
 
-    /**
-     * GREEN-API подтвердил отправку: временный идентификатор заменяется на idMessage.
-     * Если уведомление или история успели принести это сообщение раньше, остаётся одно.
-     * `fileUrl` — ссылка на загруженный файл из ответа SendFileByUpload.
-     */
+    // временный id меняем на idMessage; если сообщение уже пришло из очереди или истории, остаётся одно
     messageSendSucceeded(
       state,
       action: PayloadAction<{
@@ -328,7 +294,6 @@ const chatSlice = createSlice({
       summarize(state, chatId);
     },
 
-    /** GREEN-API не принял сообщение: оно остаётся в чате с ошибкой и возможностью повтора. */
     messageSendFailed(
       state,
       action: PayloadAction<{ chatId: string; localId: string; error: string }>,
@@ -341,7 +306,6 @@ const chatSlice = createSlice({
       }
     },
 
-    /** Повторная отправка сообщения с ошибкой. */
     messageRetried(state, action: PayloadAction<{ chatId: string; localId: string }>) {
       const { chatId, localId } = action.payload;
       const message = state.messages[chatId]?.find(({ id }) => id === localId);
@@ -351,7 +315,6 @@ const chatSlice = createSlice({
       }
     },
 
-    /** Пользователь убрал неотправленное сообщение. */
     messageRemoved(state, action: PayloadAction<{ chatId: string; id: string }>) {
       const { chatId, id } = action.payload;
       const list = state.messages[chatId];
@@ -367,7 +330,6 @@ const chatSlice = createSlice({
     },
   },
   selectors: {
-    /** Список чатов в порядке отображения. */
     selectChats: createSelector(
       [(state: ChatState) => state.chats, (state: ChatState) => state.chatOrder],
       (chats, chatOrder) =>

@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-/**
- * Состояние всплывающего элемента (меню): открыт или закрыт.
- * Открытый закрывается кликом мимо `rootRef` и клавишей Escape.
- */
 export function usePopup<Root extends HTMLElement>() {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<Root>(null);

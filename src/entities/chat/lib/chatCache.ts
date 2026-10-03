@@ -4,13 +4,9 @@ import { loadJson, saveJson } from '@/shared/lib/storage';
 import { initialChatState, type ChatState } from '../model/chatSlice';
 import type { Chat, ChatAvatarInfo } from '../model/types';
 
-/**
- * Кэш чатов в localStorage — отдельный на каждый инстанс. Источник истории — сервер
- * (GetChats, GetChatHistory); кэш нужен, чтобы список появлялся сразу после перезагрузки.
- */
+// кэш на каждый инстанс свой; нужен, чтобы список появлялся сразу после перезагрузки
 const KEY_PREFIX = 'greenapi.chats.v2.';
 
-/** Сколько последних сообщений чата сохраняем. */
 const HISTORY_LIMIT = 300;
 
 function parseAvatar(raw: Record<string, unknown> | null): ChatAvatarInfo | null {
@@ -57,7 +53,7 @@ function parseAttachment(raw: Record<string, unknown> | null): Attachment | null
   if (raw === null || kind === undefined) {
     return null;
   }
-  // fileName — прежнее имя поля: записи, сохранённые до переименования, читаются как раньше.
+  // fileName — старое имя поля
   const name = readString(raw, 'name') ?? readString(raw, 'fileName');
   return { kind, url: readString(raw, 'url'), name };
 }
@@ -86,7 +82,7 @@ function parseMessage(raw: unknown): Message | null {
   }
   const status = STATUSES.find((value) => value === raw.status);
   if (message.direction === 'outgoing' && status !== undefined) {
-    // Отправка не переживает перезагрузку страницы: такое сообщение нужно отправить заново.
+    // недоотправленное до перезагрузки считаем ошибкой
     message.status = status === 'sending' ? 'error' : status;
     const error =
       status === 'sending' ? 'Отправка прервана перезагрузкой страницы.' : readString(raw, 'error');
@@ -97,7 +93,7 @@ function parseMessage(raw: unknown): Message | null {
   return message;
 }
 
-/** Содержимое localStorage могло быть повреждено или записано другой версией — проверяем по полям. */
+// в localStorage может лежать что угодно
 function parseChatState(raw: unknown): ChatState | null {
   if (!isRecord(raw)) {
     return null;
