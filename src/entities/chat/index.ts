@@ -20,7 +20,7 @@ export {
   selectMessages,
   type ChatState,
 } from './model/chatSlice';
-export { loadChatCache, saveChatCache } from './lib/chatCache';
+export { clearChatCache, loadChatCache, saveChatCache } from './lib/chatCache';
 export { isReadOnlyChat } from './lib/isReadOnlyChat';
 export { isSavedMessagesChat } from './lib/isSavedMessagesChat';
 export { ChatAvatar } from './ui/ChatAvatar';

@@ -120,6 +120,22 @@ describe('useChatSync', () => {
     expect(journalCalls()).toBe(6);
   });
 
+  it('при размонтировании отменяет первый запрос журналов, если он ещё идёт', async () => {
+    api.reply('getChats', []);
+    const { store, unmount } = renderHookWithStore(() => useChatSync());
+    // ответа на журналы нет: оба запроса висят
+    await waitFor(() => expect(journalCalls()).toBe(2));
+    const journals = api.calls.filter((call) => call.method.startsWith('last'));
+    expect(journals.every((call) => !call.signal.aborted)).toBe(true);
+
+    unmount();
+
+    await waitFor(() => expect(journals.every((call) => call.signal.aborted)).toBe(true));
+    expect(selectChats(store.getState())).toEqual([]);
+    // отмена — не сбой журнала, в консоль о ней не пишем
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
   it('сбой одного журнала не мешает использовать второй', async () => {
     api.reply('getChats', []);
     api.reply('lastIncomingMessages', { message: 'Forbidden' }, 403);

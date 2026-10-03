@@ -49,14 +49,23 @@ describe('persistState', () => {
     expect(selectChats(restored.getState())[0]?.avatar).toEqual(avatar);
   });
 
-  it('при выходе удаляет учётные данные, но не затирает кэш чатов пустым состоянием', () => {
+  it('при выходе удаляет и учётные данные, и историю переписки', () => {
     const store = startSession();
+    expect(localStorage.getItem(CHATS_KEY)).not.toBeNull();
 
     store.dispatch(sessionEnded());
 
-    expect(localStorage.getItem(CREDENTIALS_KEY)).toBeNull();
     expect(selectChats(store.getState())).toEqual([]);
-    expect(localStorage.getItem(CHATS_KEY)).toContain('79991234567');
+    expect(localStorage).toHaveLength(0);
+  });
+
+  it('после выхода опоздавший ответ не возвращает переписку в localStorage', () => {
+    const store = startSession();
+    store.dispatch(sessionEnded());
+
+    store.dispatch(chatOpened({ chatId: '10000000', phone: '79991234567' }));
+
+    expect(localStorage).toHaveLength(0);
   });
 
   it('ничего не пишет без активной сессии', () => {

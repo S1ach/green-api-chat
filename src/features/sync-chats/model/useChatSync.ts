@@ -18,13 +18,25 @@ function warnUnavailable(journal: string, error: unknown): void {
 }
 
 // два запроса на весь аккаунт вместо истории по каждому чату
-function loadJournals(minutes: number): AppThunk<Promise<ReceivedMessage[]>> {
+function loadJournals(minutes: number, signal: AbortSignal): AppThunk<Promise<ReceivedMessage[]>> {
   return async (dispatch) => {
     const options = { track: false } as const;
+    const incomingRequest = dispatch(
+      greenApi.endpoints.lastIncomingMessages.initiate({ minutes }, options),
+    );
+    const outgoingRequest = dispatch(
+      greenApi.endpoints.lastOutgoingMessages.initiate({ minutes }, options),
+    );
+    const abort = (): void => {
+      incomingRequest.abort();
+      outgoingRequest.abort();
+    };
+    signal.addEventListener('abort', abort, { once: true });
     const [incoming, outgoing] = await Promise.allSettled([
-      dispatch(greenApi.endpoints.lastIncomingMessages.initiate({ minutes }, options)).unwrap(),
-      dispatch(greenApi.endpoints.lastOutgoingMessages.initiate({ minutes }, options)).unwrap(),
+      incomingRequest.unwrap(),
+      outgoingRequest.unwrap(),
     ]);
+    signal.removeEventListener('abort', abort);
 
     const received: ReceivedMessage[] = [];
     if (incoming.status === 'fulfilled') {
@@ -61,7 +73,9 @@ export function useChatSync(): { isLoading: boolean } {
   }, [remoteChats, dispatch]);
 
   useEffect(() => {
-    let stopped = false;
+    // размонтирование отменяет и запрос, который ещё идёт: первый тянет журнал за сутки
+    const controller = new AbortController();
+    const { signal } = controller;
     let running = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -71,9 +85,9 @@ export function useChatSync(): { isLoading: boolean } {
       }
       running = true;
       devLog('ChatSync', `Fetching journals for the last ${minutes} min`);
-      const received = await dispatch(loadJournals(minutes));
+      const received = await dispatch(loadJournals(minutes, signal));
       running = false;
-      if (stopped) {
+      if (signal.aborted) {
         return;
       }
       devLog('ChatSync', `Received ${received.length} messages`);
@@ -105,7 +119,7 @@ export function useChatSync(): { isLoading: boolean } {
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      stopped = true;
+      controller.abort();
       clearTimeout(timer);
       document.removeEventListener('visibilitychange', handleVisibility);
     };

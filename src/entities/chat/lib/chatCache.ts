@@ -1,6 +1,6 @@
 import type { Attachment, Message, MessageStatus } from '@/entities/message/@x/chat';
 import { isRecord, readNumber, readRecord, readString } from '@/shared/lib/guards';
-import { loadJson, saveJson } from '@/shared/lib/storage';
+import { loadJson, removeKey, saveJson } from '@/shared/lib/storage';
 import { initialChatState, type ChatState } from '../model/chatSlice';
 import type { Chat, ChatAvatarInfo } from '../model/types';
 
@@ -136,4 +136,8 @@ export function saveChatCache(idInstance: string, state: ChatState): void {
     messages[chatId] = list.slice(-HISTORY_LIMIT);
   }
   saveJson(KEY_PREFIX + idInstance, { ...state, messages });
+}
+
+export function clearChatCache(idInstance: string): void {
+  removeKey(KEY_PREFIX + idInstance);
 }
