@@ -1,127 +1,125 @@
-// цвета — с сайта green-api.com, имена токенов и размеры — из max-ui
-// (github.com/max-messenger/max-ui)
+// палитра MAX: токены и значения из max-ui (github.com/max-messenger/max-ui) и web.max.ru
 
 @mixin lightPalette {
   // Background
-  --background-surface: #f5f5f5;
+  --background-surface: #edeef2;
   --background-primary: #ffffff;
-  --background-secondary: #f5f6f6;
-  --background-tertiary: rgb(26 26 26 / 0.06);
+  --background-secondary: #f5f7fa;
+  --background-tertiary: rgb(9 9 9 / 0.05);
   --background-card: #ffffff;
-  --background-selected: #e6ff9d;
-  --background-overlay: rgb(26 26 26 / 0.45);
+  --background-selected: rgb(0 122 255 / 0.08);
+  --background-overlay: rgb(12 13 14 / 0.32);
 
   // Icon
-  --icon-primary: rgb(26 26 26 / 0.84);
-  --icon-tertiary: rgb(26 26 26 / 0.48);
-  --icon-mute: rgb(26 26 26 / 0.28);
-  --icon-themed: #3b9702;
-  --icon-negative: #df484a;
+  --icon-primary: rgb(6 7 8 / 0.84);
+  --icon-tertiary: rgb(6 7 8 / 0.48);
+  --icon-mute: rgb(6 7 8 / 0.28);
+  --icon-themed: #007aff;
+  --icon-negative: #ff303c;
   --icon-warning: #f57c00;
 
   // Text
-  --text-primary: #1a1a1a;
-  --text-secondary: #4b4b4b;
-  --text-tertiary: rgb(26 26 26 / 0.6);
+  --text-primary: #060708;
+  --text-secondary: rgb(6 7 8 / 0.68);
+  --text-tertiary: rgb(6 7 8 / 0.6);
   --text-primary-inverse-static: #ffffff;
-  // для текста — тёмный зелёный: основной на белом читается хуже
-  --text-themed: #2d7301;
-  --text-negative: #c9383a;
+  // для текста — на тон темнее: основной синий на белом читается хуже
+  --text-themed: #006ee5;
+  --text-negative: #d9232e;
 
   // Divider
-  --divider-primary: rgb(26 26 26 / 0.14);
-  --divider-secondary: rgb(26 26 26 / 0.07);
+  --divider-primary: rgb(12 13 14 / 0.16);
+  --divider-secondary: rgb(12 13 14 / 0.06);
 
   // Button
-  --button-primary: #3b9702;
-  --button-secondary-contrast: rgb(26 26 26 / 0.07);
+  --button-primary: #007aff;
+  --button-secondary-contrast: rgb(32 54 110 / 0.1);
 
   // Counter
-  --counter-themed: #3b9702;
+  --counter-themed: #007aff;
 
   // States
-  --states-button-primary-hover: #2d7301;
-  --states-button-primary-pressed: #245c01;
-  --states-button-primary-disabled: rgb(59 151 2 / 0.45);
-  --states-button-secondary-contrast-hover: rgb(26 26 26 / 0.1);
-  --states-button-secondary-contrast-pressed: rgb(26 26 26 / 0.14);
-  --states-button-ghost-hover: rgb(59 151 2 / 0.08);
-  --states-button-ghost-pressed: rgb(59 151 2 / 0.14);
-  --states-text-primary-disabled: rgb(26 26 26 / 0.38);
+  --states-button-primary-hover: #479fff;
+  --states-button-primary-pressed: #006ee5;
+  --states-button-primary-disabled: rgb(0 122 255 / 0.48);
+  --states-button-secondary-contrast-hover: rgb(32 54 110 / 0.14);
+  --states-button-secondary-contrast-pressed: rgb(32 54 110 / 0.18);
+  --states-button-ghost-hover: rgb(0 122 255 / 0.08);
+  --states-button-ghost-pressed: rgb(0 122 255 / 0.14);
+  --states-text-primary-disabled: rgb(6 7 8 / 0.38);
   --states-text-primary-inverse-static-disabled: rgb(255 255 255 / 0.8);
-  --states-background-hovered-transparent: rgb(26 26 26 / 0.04);
-  --states-background-pressed-transparent: rgb(26 26 26 / 0.08);
+  --states-background-hovered-transparent: rgb(13 13 13 / 0.04);
+  --states-background-pressed-transparent: rgb(13 13 13 / 0.08);
 
   // фон переписки
-  --chat-background: #d5e9c9;
-  --chat-pattern-opacity: 1;
+  --chat-background: var(--background-surface);
   --chat-chip-background: rgb(255 255 255 / 0.9);
 
   --message-incoming: var(--background-primary);
-  --message-outgoing: #e6ff9d;
+  // синий акцент (16 %) на белом
+  --message-outgoing: #d6eaff;
   --message-outgoing-text: var(--text-primary);
-  --message-outgoing-meta: rgb(26 26 26 / 0.6);
-  --message-outgoing-accent: #2d7301;
-  --message-outgoing-icon-background: rgb(59 151 2 / 0.16);
+  --message-outgoing-meta: rgb(6 7 8 / 0.6);
+  --message-outgoing-accent: #006ee5;
+  --message-outgoing-icon-background: rgb(0 122 255 / 0.16);
   --shadow-floating: 0 4px 16px 0 rgb(0 0 0 / 0.08), 0 0 2px 0 rgb(0 0 0 / 0.08);
 }
 
 @mixin darkPalette {
   // Background
-  --background-surface: #111111;
-  --background-primary: #1a1a1a;
-  --background-secondary: #262626;
-  --background-tertiary: rgb(255 255 255 / 0.08);
-  --background-card: #262626;
-  --background-selected: rgb(59 151 2 / 0.32);
-  --background-overlay: rgb(0 0 0 / 0.6);
+  --background-surface: #0f0f12;
+  --background-primary: #17181c;
+  --background-secondary: #25262d;
+  --background-tertiary: rgb(255 255 255 / 0.09);
+  --background-card: #25262d;
+  --background-selected: #2c2d37;
+  --background-overlay: rgb(13 13 13 / 0.64);
 
   // Icon
   --icon-primary: #ffffff;
   --icon-tertiary: rgb(255 255 255 / 0.52);
   --icon-mute: rgb(255 255 255 / 0.36);
-  --icon-themed: #3bd671;
-  --icon-negative: #df484a;
+  --icon-themed: #479fff;
+  --icon-negative: #ce4257;
   --icon-warning: #f57c00;
 
   // Text
   --text-primary: #ffffff;
-  --text-secondary: #e0e0e0;
-  --text-tertiary: rgb(255 255 255 / 0.62);
+  --text-secondary: rgb(255 255 255 / 0.8);
+  --text-tertiary: rgb(255 255 255 / 0.64);
   --text-primary-inverse-static: #ffffff;
-  --text-themed: #3bd671;
-  --text-negative: #ee6466;
+  --text-themed: #479fff;
+  --text-negative: #f54e67;
 
   // Divider
   --divider-primary: rgb(255 255 255 / 0.12);
   --divider-secondary: rgb(255 255 255 / 0.06);
 
   // Button
-  --button-primary: #3b9702;
-  --button-secondary-contrast: rgb(255 255 255 / 0.1);
+  --button-primary: #007aff;
+  --button-secondary-contrast: rgb(191 194 246 / 0.26);
 
   // Counter
-  --counter-themed: #3b9702;
+  --counter-themed: #007aff;
 
   // States
-  --states-button-primary-hover: #2d7301;
-  --states-button-primary-pressed: #245c01;
+  --states-button-primary-hover: #479fff;
+  --states-button-primary-pressed: #006ee5;
   --states-button-primary-disabled: rgb(255 255 255 / 0.12);
-  --states-button-secondary-contrast-hover: rgb(255 255 255 / 0.14);
-  --states-button-secondary-contrast-pressed: rgb(255 255 255 / 0.08);
-  --states-button-ghost-hover: rgb(59 214 113 / 0.1);
-  --states-button-ghost-pressed: rgb(59 214 113 / 0.16);
+  --states-button-secondary-contrast-hover: rgb(191 194 246 / 0.32);
+  --states-button-secondary-contrast-pressed: rgb(191 194 246 / 0.22);
+  --states-button-ghost-hover: rgb(71 159 255 / 0.1);
+  --states-button-ghost-pressed: rgb(71 159 255 / 0.16);
   --states-text-primary-disabled: rgb(255 255 255 / 0.28);
   --states-text-primary-inverse-static-disabled: rgb(255 255 255 / 0.28);
-  --states-background-hovered-transparent: rgb(255 255 255 / 0.04);
-  --states-background-pressed-transparent: rgb(255 255 255 / 0.08);
+  --states-background-hovered-transparent: rgb(232 232 232 / 0.04);
+  --states-background-pressed-transparent: rgb(232 232 232 / 0.08);
 
-  --chat-background: #111111;
-  --chat-pattern-opacity: 0.07;
-  --chat-chip-background: rgb(38 38 38 / 0.9);
+  --chat-background: var(--background-surface);
+  --chat-chip-background: rgb(37 38 45 / 0.9);
 
   --message-incoming: var(--background-secondary);
-  --message-outgoing: #2d7301;
+  --message-outgoing: #2258cc;
   --message-outgoing-text: #ffffff;
   --message-outgoing-meta: rgb(255 255 255 / 0.72);
   --message-outgoing-accent: #ffffff;
